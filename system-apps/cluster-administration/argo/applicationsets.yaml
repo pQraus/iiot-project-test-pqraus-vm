@@ -1,0 +1,63 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: system-apps
+  namespace: argocd
+spec:
+  generators:
+  - git:
+      repoURL: 'ssh://git@ssh.github.com:443/pQraus/iiot-project-test-pqraus-vm.git'
+      revision: main
+      directories:
+      # '**' will not work
+      - path: 'system-apps/*/argo'
+      # e.g. system_apps/app1/argo
+      - path: 'system-apps/*/*/argo'
+      # e.g. user_apps/app2/k8s/argo
+  template:
+    metadata:
+      name: '{{path[1]}}'
+    spec:
+      project: system-apps
+      source:
+        repoURL: 'ssh://git@ssh.github.com:443/pQraus/iiot-project-test-pqraus-vm.git'
+        targetRevision: main
+        path: '{{path}}'
+      destination:
+        server: https://kubernetes.default.svc
+      syncPolicy:
+        automated: {}
+        retry:
+          limit: 0
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: user-apps
+  namespace: argocd
+spec:
+  generators:
+  - git:
+      repoURL: 'ssh://git@ssh.github.com:443/pQraus/iiot-project-test-pqraus-vm.git'
+      revision: main
+      directories:
+      # '**' will not work
+      - path: 'user-apps/*/argo'
+      # e.g. system_apps/app1/argo
+      - path: 'user-apps/*/*/argo'
+      # e.g. user_apps/app2/k8s/argo
+  template:
+    metadata:
+      name: '{{path[1]}}'
+    spec:
+      project: user-apps
+      source:
+        repoURL: 'ssh://git@ssh.github.com:443/pQraus/iiot-project-test-pqraus-vm.git'
+        targetRevision: main
+        path: '{{path}}'
+      destination:
+        server: https://kubernetes.default.svc
+      syncPolicy:
+        automated: {}
+        retry:
+          limit: 0

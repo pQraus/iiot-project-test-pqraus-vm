@@ -1,0 +1,51 @@
+namespace: argocd
+images:
+- name: quay.io/argoproj/argocd
+  newName: quay.io/argoproj/argocd
+  newTag: v2.9.3
+resources:
+  - resources/argocd-namespace.yaml
+  - resources/ingress.yaml
+  - https://github.com/argoproj/argo-cd/manifests/core-install?ref=v2.9.3&submodules=false&timeout=120s
+  - https://github.com/argoproj/argo-cd/manifests/cluster-rbac/server?ref=v2.9.3&submodules=false&timeout=120s
+  - https://github.com/argoproj/argo-cd/manifests/base/server?ref=v2.9.3&submodules=false&timeout=120s
+
+# patch image pull policy to IfNotPresent (patches docs: https://kubectl.docs.kubernetes.io/references/kustomize/kustomization/patches/)
+patches:
+  - path: patches/container-patches.yaml
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: argocd-applicationset-controller
+  - path: patches/container-patches.yaml
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: argocd-redis
+  - path: patches/container-patches.yaml
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: argocd-repo-server
+  - path: patches/container-patches.yaml
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: argocd-server
+  - path: patches/container-patches.yaml
+    target:
+      group: apps
+      version: v1
+      kind: StatefulSet
+      name: argocd-application-controller
+
+  # patch with specific argo params
+  - path: patches/argo-cm.yaml
+  - path: patches/argo-cmd-params-cm.yaml
+  - path: patches/rbac-cm.yaml
+  - path: patches/ssh-known-hosts-cm.yaml
+  - path: patches/tls-certs-cm.yaml

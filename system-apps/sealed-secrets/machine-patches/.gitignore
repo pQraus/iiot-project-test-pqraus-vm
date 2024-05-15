@@ -1,0 +1,3 @@
+*
+!.gitignore
+!sealed-secrets-key.yaml.temp

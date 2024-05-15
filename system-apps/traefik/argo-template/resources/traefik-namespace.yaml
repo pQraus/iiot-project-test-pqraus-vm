@@ -1,0 +1,7 @@
+# Changes here will be overwritten by Copier; DO NOT EDIT MANUALLY
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: traefik
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"

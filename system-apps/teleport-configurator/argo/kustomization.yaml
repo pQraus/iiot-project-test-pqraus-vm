@@ -1,0 +1,18 @@
+namespace: teleport-configurator
+
+configMapGenerator:
+  - name: teleport-config
+    files:
+      - config/config.yaml
+    literals:
+      - teleportVersion=13.4.16      # only needed to trigger an argo sync of the teleport config app
+    options:
+      disableNameSuffixHash: true
+
+images:
+  - name: schulzsystemtechnik/iiot-misc-teleport-configurator
+    newTag: 1.1.0-13.4.16
+
+resources:
+  - resources/configurator-job.yaml
+  - resources/configurator-namespace.yaml

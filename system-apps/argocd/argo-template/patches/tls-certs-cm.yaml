@@ -1,0 +1,18 @@
+# Custom CAs for repo server
+
+# this file is individually for the project and will not be updated by copier
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-tls-certs-cm
+data:
+  {}
+  # your.custom.server.com: |
+  #   -----BEGIN CERTIFICATE-----
+  #   ....
+  # 
+  # your.custom.server2.com: |
+  #   -----BEGIN CERTIFICATE-----
+  #   ....
+

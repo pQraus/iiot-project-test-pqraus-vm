@@ -1,0 +1,11 @@
+# Changes here will be overwritten by `iiotctl machine bootstrap`; DO NOT EDIT MANUALLY
+context: test-pqraus-vm
+contexts:
+    test-pqraus-vm:
+        endpoints:
+            - 127.0.0.1
+        nodes:
+            - test-pqraus-vm
+        ca: "the ca will be patched by the bootstrap task"
+        crt: ""
+        key: ""

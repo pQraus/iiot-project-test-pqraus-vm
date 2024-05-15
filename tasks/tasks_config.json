@@ -1,0 +1,19 @@
+{
+    "box_name": "test-pqraus-vm",
+    "project_repo": "pQraus/iiot-project-test-pqraus-vm",
+    "repo_on_github": true,
+    "talos_installer": "docker.io/schulzsystemtechnik/talos-installer:v1.5.4-1",
+    "talos_extensions": {
+        "talosctl-provider": "2.0.1",
+        "auth-proxy": "1.5.0",
+        "bootstrap-service": "1.1.0",
+        "teleport-agent": "1.1.0"
+    },
+    "talos_version": "1.5.4",
+    "teleport_enabled": true,
+    "teleport_proxy_url": "prod.teleport.schulzdevcloud.com:443",
+    "k8s_version": "1.28.2",
+    "local_k8s_access": false,
+    "invoke_version": "1.0.0",
+    "container_registries": ["docker", "schulz_registry"]
+}

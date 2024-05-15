@@ -1,0 +1,10 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: v2.2.0
+_src_path: https://github.com/SchulzSystemtechnik/iiot-base-box.git
+additional_system_apps: []
+advanced_mode: false
+environment: dev
+name: test-pqraus-vm
+preset_type: IIoT
+repo_github_name: pQraus/iiot-project-test-pqraus-vm
+teleport_usage_label: iiot

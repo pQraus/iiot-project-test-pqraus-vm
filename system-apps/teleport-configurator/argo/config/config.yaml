@@ -1,0 +1,48 @@
+teleport:
+  auth_servers: ["prod.teleport.schulzdevcloud.com:443"]
+  data_dir: "/teleport-agent/data"
+  auth_token: "/teleport-agent/config/join-token"
+  diag_addr: "localhost:7755"
+  ca_pin:
+    - sha256:1b03b275dd06af7eff4795f2c8cbb0d61a7c528852c51d0a461bb4be570fcd20
+  log:
+    severity: INFO
+    output: stderr
+    format:
+      output: text
+      extra_fields: ["timestamp","level","component","caller"]
+
+kubernetes_service:
+  enabled: true
+  kubeconfig_file: "/secrets/kubernetes/admin/config"
+  labels:
+    usage: iiot
+    env: dev
+    
+app_service:
+  enabled: true
+  apps:
+    - name: talos-test-pqraus-vm
+      uri: tcp://localhost:51002
+      labels:
+        usage: iiot
+        env: dev
+        kind: talos
+        remote_monitoring: False
+        base_repo_version: v2.2.0
+    - name: private-test-pqraus-vm
+      uri: http://10.96.0.100:80
+      labels:
+        usage: iiot
+        env: dev
+        kind: ingress-private
+
+db_service:
+  enabled: false
+
+auth_service:
+  enabled: false
+ssh_service:
+  enabled: false
+proxy_service:
+  enabled: false

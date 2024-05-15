@@ -1,0 +1,52 @@
+# Changes here will be overwritten by Copier; DO NOT EDIT MANUALLY
+namespace: traefik
+
+resources:
+  - resources/traefik-namespace.yaml
+
+helmCharts:
+  - name: traefik
+    version: 24.0.0
+    repo: https://traefik.github.io/charts
+    releaseName: traefik
+    namespace: traefik
+    includeCRDs: true   # create traefik's CRDs
+    valuesInline:  # values.yaml description: https://github.com/traefik/traefik-helm-chart/blob/master/traefik/values.yaml
+      globalArguments: []  # disable check version & anonymous data usage
+      ports:
+        # ports:
+        #   example:  <-- name of entrypoint
+        #     port:  <-- port which traefik pod opens (entrypoint)
+        #     exposedPort:  <-- talos internal port of traefik service other apps can access entrypoint by
+        #     expose: true  <-- bind traefik pod entrypoint port to traefik service
+        #     nodePort:  <-- talos external port to access entrypoint by (has to be between 30000 - 32767)
+
+        web: []
+        websecure: []
+        
+        private:
+          port: 8180
+          exposedPort: 80
+          expose: true
+
+      service:
+        # only declare traefik a 'NodePort' service if any of the ports above have access via nodePort configured
+        # otherwise use 'ClusterIP'
+        type: ClusterIP
+        # the 'clusterIP' under 'spec' should always be "10.96.0.100"
+        spec:
+          clusterIP: "10.96.0.100"
+
+      # set Traefik as your default Ingress Controller
+      ingressClass:
+        enabled: true
+        isDefaultClass: true
+      
+      ingressRoute:
+        dashboard:
+          matchRule: HostRegexp(`{subdomain:traefik}.{*}`)
+          entryPoints: ["private"]
+
+      logs:
+        general:
+          level: INFO

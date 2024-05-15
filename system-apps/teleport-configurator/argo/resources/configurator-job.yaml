@@ -1,0 +1,50 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: teleport-configurator
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      volumes:
+        - name: binaries
+          hostPath:
+            path: /var/extension-data/bin
+        - name: talosconfig
+          hostPath:
+            path: /var/extension-data/secrets/talos/admin
+        - name: shipped-config
+          projected:
+            sources:
+              - secret:
+                  name: teleport-join-token
+                  items:
+                    - key: join-token
+                      path: join-token
+              - configMap:
+                  name: teleport-config
+                  items:
+                    - key: config.yaml
+                      path: config.yaml
+        - name: live-data
+          hostPath:
+            path: /var/extension-data/teleport-agent
+      hostNetwork: true
+      containers:
+        - name: teleport-configurator
+          image: schulzsystemtechnik/iiot-misc-teleport-configurator
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: binaries
+              mountPath: /talos/bin
+              readOnly: true
+            - name: talosconfig
+              mountPath: /talos/secrets
+              readOnly: true
+            - name: live-data
+              mountPath: /teleport-agent-live
+            - name: shipped-config
+              mountPath: /teleport-agent-shipped/config
+      restartPolicy: Never
