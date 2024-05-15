@@ -1,11 +1,10 @@
-# Changes here will be overwritten by `iiotctl machine bootstrap`; DO NOT EDIT MANUALLY
 context: test-pqraus-vm
 contexts:
-    test-pqraus-vm:
-        endpoints:
-            - 127.0.0.1
-        nodes:
-            - test-pqraus-vm
-        ca: "the ca will be patched by the bootstrap task"
-        crt: ""
-        key: ""
+  test-pqraus-vm:
+    endpoints:
+    - 127.0.0.1
+    nodes:
+    - test-pqraus-vm
+    ca: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJQakNCOGFBREFnRUNBaEFid0ViU0JETzBPVUZBQjVEZ2hLVlpNQVVHQXl0bGNEQVFNUTR3REFZRFZRUUsKRXdWMFlXeHZjekFlRncweU5EQTFNVFV4TkRBMk1EVmFGdzB6TkRBMU1UTXhOREEyTURWYU1CQXhEakFNQmdOVgpCQW9UQlhSaGJHOXpNQ293QlFZREsyVndBeUVBWjROZFRHNDA1OEp5VHJGM3B2UHcvaEl2ZTBFRWhRNWQ2d1FqCkI5RUd5UENqWVRCZk1BNEdBMVVkRHdFQi93UUVBd0lDaERBZEJnTlZIU1VFRmpBVUJnZ3JCZ0VGQlFjREFRWUkKS3dZQkJRVUhBd0l3RHdZRFZSMFRBUUgvQkFVd0F3RUIvekFkQmdOVkhRNEVGZ1FVUXBlVHFUSVRrNlc0aG1jRwpRbjgrejlrdWM3VXdCUVlESzJWd0EwRUF2TkRRMEx2dHl3MzVSL2JyZ0l4SSsvZ2VlOE9YbFpmcTB3bm0rV1J6CmduNCtIVkFldk9jUGZ6emlsTXRjc2QxTjZSdFk1dEN6L1FDS05xcUhOWmVyQnc9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+    crt: ''
+    key: ''
