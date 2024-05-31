@@ -40,7 +40,7 @@ def apply_mc(mc: bytes, exit_on_failure=True, print_errors=True, **talos_args):
         cmd_result = Command.check(
             cmd=base_cmd + additional_args,
             ignore_error_msg=not print_errors,
-            additional_error_msg=error_msg
+            additional_error_msg=error_msg if print_errors else ""
         )
 
     if exit_on_failure and not cmd_result:
@@ -195,7 +195,7 @@ def patch_mc(mc: bytes, patch_files: Iterable[str], validation=True, verbose=Fal
     return mc
 
 
-def upgrade_k8s(node_name, to_version, verbose, **talos_args):
+def upgrade_k8s(node_name: str, to_version: str, pull_images: bool, verbose: bool, **talos_args):
     """upgrade k8s via talosctl and port forwarding the kube-api
 
     How a k8s upgrade on a talos machine works:
@@ -210,6 +210,7 @@ def upgrade_k8s(node_name, to_version, verbose, **talos_args):
         "upgrade-k8s",
         "--to",
         to_version,
+        f"--pre-pull-images={str(pull_images).lower()}",
         "--endpoint",
         "localhost",
     ]

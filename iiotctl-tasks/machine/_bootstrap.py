@@ -37,7 +37,7 @@ def _update_talosconfig(ip: str, talosconfig: bytes):
 @check.dependency(*DEP_GPG)
 @check.dependency(*DEP_TALOSCTL)
 def bootstrap(
-    ip: str,
+    machine_ip: str,
     out_talosconfig: str,
     out_mc: str,
     dry_run: bool,
@@ -45,7 +45,7 @@ def bootstrap(
     verbose: bool,
 ):
 
-    check.ip(ip)
+    check.ip(machine_ip)
     patch_files = common.glob_files(REPO_ROOT, *PATCH_LOCATIONS)
 
     installer_image = load_repo_installer_image_ref()
@@ -67,7 +67,7 @@ def bootstrap(
         raise typer.Abort()
 
     if out_talosconfig:
-        updated_talosconfig = _update_talosconfig(ip, talosconfig)
+        updated_talosconfig = _update_talosconfig(machine_ip, talosconfig)
         with open(out_talosconfig, "w") as f_config:
             f_config.write(updated_talosconfig)
 
@@ -86,9 +86,9 @@ def bootstrap(
 
     common.print_if("", verbose)
     common.print_if("Config creation finished successfully", verbose)
-    print(f"Applying the initial config to the machine ({ip})...")
+    print(f"Applying the initial config to the machine ({machine_ip})...")
 
-    talosctl.apply_mc(initial_mc, insecure=True, nodes=ip)
+    talosctl.apply_mc(initial_mc, insecure=True, nodes=machine_ip)
 
     print("Seal the initial config")
     talos_config.seal(initial_mc)

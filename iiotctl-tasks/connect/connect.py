@@ -10,8 +10,8 @@ app = typer.Typer(name="connect", help="Connect to different APIs on live machin
 @app.command()
 def talos(
     local_port: Annotated[int, typer.Option("--local-port", help="the local port to reach the talos api by")] = 50000,
-    local_ip: Annotated[
-        str, typer.Option("--local-ip", help="local network ip of live machine", rich_help_panel="Local access")
+    machine_ip: Annotated[
+        str, typer.Option("--machine-ip", help="local network ip of live machine", rich_help_panel="Local access")
     ] = None,
     ttl: Annotated[
         str, typer.Option("--ttl", help="time local access is available", rich_help_panel="Local access")
@@ -31,13 +31,13 @@ def talos(
         While the command runs in one console you can interact with the talos api via talosctl in another.
     """
 
-    _connect.connect_talos(local_port, local_ip, ttl, talosconfig)
+    _connect.connect_talos(local_port, machine_ip, ttl, talosconfig)
 
 
 @app.command()
 def k8s(
-    local_ip: Annotated[
-        str, typer.Option("--local-ip", help="local network ip of live machine", rich_help_panel="Local access")
+    machine_ip: Annotated[
+        str, typer.Option("--machine-ip", help="local network ip of live machine", rich_help_panel="Local access")
     ] = None,
     ttl: Annotated[
         str, typer.Option("--ttl", help="time local access is available", rich_help_panel="Local access")
@@ -57,12 +57,16 @@ def k8s(
     the commands are directed to the k8s API of the live machine.
     """
 
-    _connect.connect_k8s(local_ip, ttl, kubeconfig)
+    _connect.connect_k8s(machine_ip, ttl, kubeconfig)
 
 
 @app.command()
 def argo(
     local_port: Annotated[int, typer.Option("--local-port", help="local port where argo can be reached")] = 8100,
+    local_address: Annotated[
+        str,
+        typer.Option("--local-address", help="local address to listen on")
+    ] = "localhost",
     use_current_context: Annotated[
         bool,
         typer.Option(
@@ -90,7 +94,7 @@ def argo(
     >>> iiotctl connect argo --local-port 9200
     """
 
-    _connect.connect_argo(local_port, use_current_context, kubeconfig)
+    _connect.connect_argo(local_port, local_address, use_current_context, kubeconfig)
 
 
 @app.command()
@@ -98,6 +102,10 @@ def traefik(
     local_port: Annotated[
         int, typer.Option("--local-port", help="local port where traefik private entrypoint can be reached")
     ] = 3000,
+    local_address: Annotated[
+        str,
+        typer.Option("--local-address", help="local address to listen on")
+    ] = "localhost",
     use_current_context: Annotated[
         bool,
         typer.Option(
@@ -127,4 +135,4 @@ def traefik(
     >>> iiotctl connect traefik --local-port 9200
     """
 
-    _connect.connect_traefik(local_port, use_current_context, kubeconfig)
+    _connect.connect_traefik(local_port, local_address, use_current_context, kubeconfig)
