@@ -1,5 +1,5 @@
 # Setup an IIoT-Box
-The `iiotctl` tool is used to create the (unique) machine configuration files and to build and upload the config to the machine. It's like a `make` script / task for python. Before these steps, it's necessary to collect some information about your new IIoT-Box.
+The iiotctl tasks are wrapper functions using different cli-tools to make it easy to manage and build the configuration for a box. The tasks are like `make` scripts for python. Before these steps, it's necessary to collect some information about your new IIoT-Box.
 
 This manual will show you how to create a new project or how to setup an IIoT-Box from an existing repository.
 
@@ -12,21 +12,25 @@ This manual will show you how to create a new project or how to setup an IIoT-Bo
 
 ## Setup workflows:
 
-For all steps the `box-setup-infos` file is required!
+### New project:
 
-**New project:**
+0. [Prepare the machine](#0-prepare-a-bare-metal-box--virtual-machine)
+1. [Create the repo with iiotctl](#1-create-the-project-local-with-iiotctl-base-init)
+2. [Build machine config with iiotctl](#2-build-machine-config-with-iiotctl-project-setup)
+3. [Apply to Machine](#3-apply-to-machine-with-iiotctl-machine-bootstrap)
 
-1. [Prepare the machine](#1-prepare-a-bare-metal-box--virtual-machine)
-2. [Create the repo with copier](#2-create-the-repo-with-copier)
-3. [Build machine config with iiotctl](#3-build-machine-configuration-with-iiotctl-tasks)
+in Short:
+1. `iiotctl base init <path-new-project-repo> && cd <path-new-project-repo>`
+2. `iiotctl project setup`
+3. `iiotctl machine bootstrap <ip-of-the-box>`
 
-**Recreating from an existing project:**
-1. [Prepare the machine](#1-prepare-a-bare-metal-box--virtual-machine)
-2. [Create machine config from an existing repository](#2b-create-machine-config-from-an-existing-repository)
-3. [Build machine config with iiotctl](#3-build-machine-configuration-with-iiotctl-tasks)
+### Recreating from an existing project:
+1. [Prepare the machine](#0-prepare-a-bare-metal-box--virtual-machine)
+2. [Create machine config from an existing repository](#1b-create-machine-config-from-an-existing-repository)
+3. [Build machine config with iiotctl](#2-build-machine-config-with-iiotctl-project-setup)
+4. [Apply to Machine](#3-apply-to-machine-with-iiotctl-machine-bootstrap)
 
-
-## 1. Prepare a bare metal box / virtual machine
+## 0. Prepare a bare metal box / virtual machine
 **Requirements:**
 - the new machine is connected to the network
 - the new machine is connected to a monitor and a keyboard
@@ -48,7 +52,7 @@ For all steps the `box-setup-infos` file is required!
     - note the ip address for later use
 3. The last step before creating the machine configuration, is to write down the name / path of the disk and the name of the network interfaces. For this purpose `talosctl` (on your machine) can be used:
     ```console
-    talosctl apply-config --insecure --mode interactive --nodes <box-ip-adress>
+    talosctl apply-config --insecure --mode interactive --nodes <box-ip-address>
     ```
     - the diskname is printed on the first page:
         ![talosctl-diskname](/../media/docs-base/pics/talosctl-diskname.png)
@@ -58,40 +62,49 @@ For all steps the `box-setup-infos` file is required!
     - note the network interface (en...) (only the ones you wish to configure)
     - when you have noticed all the things, exit the command with *STRG + C*
 
-## 2. Create the repo with `iiotctl`
-For the creation of the machine config `iiotctl` will be used. The `box-setup-infos` file is used to answer the copier questions.
+## 1. Create the project locally with `iiotctl base init`
+This step copies the base project template from github to a local project directory on the developers PC.
 
-1. use iiotctl to create a new project (repo):
+**Suggestions**
+- Create all your project repos in your `/repos` directory
     ```bash
-    iiotctl base init
+    cd ~/repos
+    ``````
+
+**Steps**
+
+1. Use iiotctl to create a new project (repo) and answer the dialog questions:
+    ```bash
+    iiotctl base init <path-new-project-repo>
     ```
----
-2. answer the dialog questions (for most answers you can use the filled `box-setup-infos` file):
+
     - choose a preset type for the machine (IIoT, GPU)
     - disable the advanced mode (if no special requirements)
     - choose a box-name (best-practice: repo name on github without the 'iiot-project' prefix)
     - enter owner and name of the remote git repository in the format [OWNER]/[REPO_NAME]
     - choose additional system apps
         - remote monitoring requires a grafana token (can be created later via `iiotctl`)
----
-3. follow the additional printed instructions (e.g. modify certain machine configuration files)
+
+    **Optional**: follow the additional printed instructions (e.g. modify certain machine configuration files)
+
     - in these files the noted infos (disk-name, network-interface name) are used:
     ![copier-copy-machine-patches](/../media/docs-base/pics/copier-copy-machine-patches.png)
     - e.g. change the disk name in `machine/config/disk`:
-        ```python
-        # disk configuration
+    ```python
+    # disk configuration
 
-        # this file is individually for the project and will not be updated by copier
-        # the disk name will be patched at 'machine.install.disk'
+    # this file is individually for the project and will not be updated by copier
+    # the disk name will be patched at 'machine.install.disk'
 
 
-        def disk_name:
-        # must return a string
-        "<THE-PATH-OF-YOUR-DISK>"; # <---
-        ```
+    def disk_name:
+    # must return a string
+    "<THE-PATH-OF-YOUR-DISK>"; # <---
+    ```
 
-## 3. Build machine configuration with `iiotctl tasks`
-The iiotctl tasks are wrapper functions using different cli-tools to make it easy to manage and build the configuration for a box. The tasks are like `make` scripts for python.
+
+## 2. Build machine config with `iiotctl project setup`
+With the second step, the project will be initialized.
 
 **Requirements**
 - For the next steps ensure that you are in the project repo
@@ -100,58 +113,77 @@ The iiotctl tasks are wrapper functions using different cli-tools to make it eas
     ``````
 
 **Steps**
-1. Install / update all the necessary tools with specific versions required by the project on your development machine
-2. Generate all-encompassing deployment manifest for each system-app in its respective /argo directory by typing the following command
-3. Setup the encryption key for sealed-secrets
-4. Setup access tokens for image registries (only for production) & acquire teleport join token (valid for 3 hours) and add it into the box setup secrets
-5. Setup token for remote-monitoring (if installed)
-6. Set up local git repository, make initial commit (-i), push to newly created github repo, add deployment key
+1. Execute the project setup task:
+    ```bash
+    iiotctl project setup
+    ```
+    This task performs the following steps automatically:
+    1. Install / update all the necessary tools with specific versions required by the project on your development machine
+    2. Generate all-encompassing deployment manifest for each system-app in its respective /argo directory by typing the following command
+    3. Setup the encryption key for sealed-secrets
+    4. Setup access tokens for image registries (only for production) & acquire teleport join token (valid for 3 hours) and add it into the box setup secrets
+    5. Setup token for remote-monitoring (if installed)
+    6. Do git stuff
+       1. Set up local git repository
+       2. make initial commit (-i)
+       3. creating the repository on github
+       4. push to newly created github repository
+       5. add github deployment key
 
-- To execute step 1-6 run:
-```bash
-iiotctl project setup
-```
-7. Create the machine config and apply it directly to the machine:
+
+## 3. Apply to machine with `iiotctl machine bootstrap`
+Now with the third step, the config will be applied to the machine.
+
+**Requirements**
+- Knowing the IP-Address from the PC and being in the same network.
+    ```bash
+    ping <ip-of-the-box>
+    ``````
+
+**Steps**
+
+1. Create the machine config and apply it directly to the machine:
     ```bash
     iiotctl machine bootstrap <ip-of-the-box>
     ```
     > use the --dry-run flag for testing
 
-    The box will restart some times. After this the box should be connected to teleport and argo should manage the system apps. It can take about 15 min before everything works.
+    The box will restart some times. After this the box should be connected to teleport and argo should manage the system apps. It can take about 15 min before everything works. If not, use the created config file (`<path-new-project-repo>/.tasks/talosconfig`). Look at [interaction with talos](/docs/interaction-talos.md) to see how to connect locally with talos.
 
-    If not, use the created config file (`<path-new-project-repo>/.tasks/talosconfig`). Look at [interaction with talos](/docs/interaction-talos.md) to see how to connect locally with talos.
-
-8. wait until the new box is ready and connected to teleport
-  
-    **VM ESX-server:** When the machine is ready you must upgrade the machine because the ova-image is already a complete talos installation and the extensions aren't installed automatically:
-    ```
-    talosconfig merge .tasks/talosconfig
-    iiotctl upgrade-talos
-    ```
-9. push the updated `talosconfig-teleport` and the created `config-sealed.asc`, `config.hash` files to github:
+2. Push the updated `talosconfig-teleport` and the created `config-sealed.asc`, `config.hash` files to github:
     ```bash
     git add . && \
     git commit -m "feat: update config files" && \
     git push origin main
     ```
-10. interacting with Talos or Kubernetes via teleport:
+
+3. Wait until the new box is ready and connected to teleport.
+  
+    **Optional VM ESX-server:** When the machine is ready you must upgrade the machine because the ova-image is already a complete talos installation and the extensions aren't installed automatically:
+    ```bash
+    talosconfig merge .tasks/talosconfig
+    ```
+    ```bash
+    iiotctl upgrade-talos
+    ```
+
+**Finished !**
+
+## Work with it
+
+* interacting with Talos or Kubernetes via teleport:
     - [interaction with talos](/docs/interaction-talos.md)
     - [interaction with k8s](/docs/interaction-k8s.md)
-11. save the root credentials for the box, the bootstrap task should have created the `<project-dir>/.tasks/talosconfig` file, this file should be stored in a safe place
-12. cleanup your local repo from uncommitted secret files
-    - delete the uncommitted files, they aren't needed anymore
-13. look at argo and sync the argocd-application again
+
+* look at argo and sync the argocd-application again
     ```
     iiotctl connect argo
     ```
     Currently required because the ingress resource can't be applied when traefik isn't running (`IngressRoute` is defined by a traefik CRD).
-14. Now you can add a user-app in the `user-apps` dir ([add an user app](/user-apps/README.md))
-15. For a production machine you should look at the checklist: `checklist` file from: https://github.com/SchulzSystemtechnik/iiot-base-box/blob/main/docs-base/
+* Now you can add a user-app in the `user-apps` dir ([add an user app](/user-apps/README.md))
+* For a production machine you should look at the checklist: https://github.com/SchulzSystemtechnik/iiot-base-box/blob/main/docs-base/checklist.md
 
-**Finished !**
-
-
-## 2B. Create machine config from an existing repository
+## 1B. Create machine config from an existing repository
 The next steps are pretty much identical to those from the [create the repo with iiotctl](#2-create-the-repo-with-iiotctl) section. Therefore, only the differences will be described now.
 
 1. clone the existing project repository to your machine

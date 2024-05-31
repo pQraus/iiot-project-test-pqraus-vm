@@ -1,3 +1,5 @@
+from typing import List
+
 import typer
 from rich import print
 from rich.table import Table
@@ -52,6 +54,16 @@ def _set_talos_upgrade_args(use_current_context: bool, verbose: bool, preserve: 
     return upgrade_args
 
 
+def _preload_images(images: List[str]):
+    """load docker images onto live machine to prepare for later update"""
+    for img in images:
+        print(f"Pull image: {img} ...", end=" ")
+        Command.check_output(["talosctl", "image", "pull", img])
+        print(":white_heavy_check_mark:")
+
+    print("Preloading images done.\n")
+
+
 @check.dependency(*DEP_TALOSCTL)
 @check.dependency(*DEP_JQ)
 def upgrade_talos(use_current_context: bool, preserve: bool, stage: bool, verbose: bool):
@@ -88,7 +100,7 @@ def upgrade_talos(use_current_context: bool, preserve: bool, stage: bool, verbos
 @check.dependency(*DEP_KUBECTL)
 @check.dependency(*DEP_TALOSCTL)
 @check.dependency(*DEP_TSH)
-def upgrade_k8s(use_current_contexts: bool, dry_run: bool, verbose: bool):
+def upgrade_k8s(use_current_contexts: bool, preload: bool, dry_run: bool, verbose: bool):
 
     common.print_if(
         "Ensure that 'iiotctl connect talos' is running'\n",
@@ -97,12 +109,22 @@ def upgrade_k8s(use_current_contexts: bool, dry_run: bool, verbose: bool):
     config_args = (
         {} if use_current_contexts else {"talosconfig": TALOS_CONFIG_PROJECT.resolve()}
     )
+
     talosctl.get_live_talos_version(**config_args)
 
     node_name_rsrc = talosctl.get_talos_resource("nodename")
     node_name = node_name_rsrc["spec"]["nodename"]
     print(f"Selected talos node for the upgrade: {node_name}")
     print()
+
+    def_images = Command.check_output(["talosctl", "image", "default"]).splitlines()
+    new_k8s_images = [img.split(":")[0] + f":v{K8S_VERSION}" for img in def_images if "kube" in img]
+    machine_images = Command.check_output(["talosctl", "image", "list"])
+    imgs_missing = [img for img in new_k8s_images if img not in machine_images]
+
+    if preload and imgs_missing:
+        _preload_images(imgs_missing)
+        typer.confirm("Continue with upgrade next ?", abort=True)
 
     if not use_current_contexts:
         teleport.login()
@@ -111,8 +133,10 @@ def upgrade_k8s(use_current_contexts: bool, dry_run: bool, verbose: bool):
     k8s_context = Command.check_output(cmd=["kubectl", "config", "current-context"])
     print(f"Selected k8s context for the upgrade: {k8s_context}")
 
-    should_upgrade = typer.confirm(f"Start upgrading to k8s {K8S_VERSION}?")
+    should_upgrade = typer.confirm(f"Start upgrading to k8s {K8S_VERSION} ?")
     print()
 
     if should_upgrade:
-        talosctl.upgrade_k8s(node_name, K8S_VERSION, dry_run=dry_run, verbose=verbose)
+        talosctl.upgrade_k8s(
+            node_name, K8S_VERSION, pull_images=not (preload or not imgs_missing), dry_run=dry_run, verbose=verbose
+        )

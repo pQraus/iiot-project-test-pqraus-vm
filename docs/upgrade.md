@@ -1,24 +1,11 @@
-# Upgrade the project base (system-upgrade)
-This guide shows how to upgrade a project repo to the current (project) base (system-upgrade).
+# Upgrade an IIoT-Box
+This guide shows how to upgrade a project to the current base.
 
-- [General](#general)
-- [Upgrade v2](#upgrade-v2)
-- [Upgrade v1 --> v2](#upgrade-v1-to-v2)
-
-## General
-
-![](/../../../../SchulzSystemtechnik/iiot-base-box/blob/main/docs-base/pics/upgrade.drawio.svg)
-
-In general, there are two steps of an upgrade:
-1. [upgrade the project repo with copier](#upgrade-the-project-repo-with-copier) to the current version of the base repo (this can be performed without affecting the running system), this means that the machine config patches and / or k8s-manifests of the system apps are upgraded
-2. [the new config / manifests are applied / deployed](#apply-the-upgrade-to-the-box) (via iiotctl, ArgoCD)
-    - In most cases, a short downtime is to be expected.
-
-Before upgrading:
+**General Requirements:**
 - ensure you can pull images from dockerhub and our registry
-- you can access the box via teleport
+- you have access to the box via teleport
 
-### What are the the things which can be affected by a system-upgrade?
+**What are the the things which can be affected by a system-upgrade?**
 - Talos Installer Image upgrade
     - requires a reboot of the system (and a time slot in which user apps can pause)
     - during the upgrade process all talos images and system extensions will be pulled from the internet
@@ -30,52 +17,104 @@ Before upgrading:
 - System-App (k8s) upgrades
     - in most cases, this is done in the background; sometimes it is necessary that the user apps stop briefly
 
-## Upgrade v2
-### Upgrade the project repo with iiotctl
-1. change to project repo (`cd <project-repo>`)
-2. upgrade  with iiotctl:
+**Overview:**
+
+![](/../../../../SchulzSystemtechnik/iiot-base-box/blob/main/docs-base/pics/upgrade.drawio.svg)
+
+
+## Upgrade Workflows:
+
+### Upgrade within a major version:
+1. [Upgrade the project repo](#1-upgrade-the-project-repo-with-iiotctl-base-update)
+
+### Upgrade the major version:
+1. [Upgrade the project repo](#1-upgrade-the-project-repo-with-iiotctl-base-update)
+2. [Apply to Machine`](#2-apply-the-upgrade-to-the-box-with-iiotctl-machine-sync)
+
+**Special:**
+* [Upgrade v1 to v2](#upgrade-v1-to-v2-1)
+
+
+## 1. Upgrade the project repo with `iiotctl base update`
+Updating the files (machine config patches, k8s-manifests) within the project repository. This can be performed without affecting the running system.
+
+**Requirements**
+- For the next steps ensure that you are in the project repo
+    ```bash
+    cd <path-new-project-repo>
+    ``````
+
+**Steps**
+1. Upgrade  with iiotctl:
     ```bash
     iiotctl base update --skip-answered
     ```
-3. look at the dialog and just answer new questions (skip the "old" questions with *ENTER*)
-    - follow the additional instructions at the end of the dialog
-4. ensure that there aren't any git merge conflicts. Try to resolve the conflicts.
-5. upgrade local project repo directory files:
+    * Only new questions will be asked
+    * Follow the additional instructions at the end of the dialog
+2. Ensure that there are aren't any git merge conflicts.
+    ```bash
+    git diff --name-status --diff-filter=U
+    ```
+    * When the command prints nothing: -> continue with next step
+    * When the command prints some files: -> try to resolve the conflicts
+3. Upgrade local project repo directory files:
     ```bash
     iiotctl project upgrade
     ```
-6. seal the machine config for the first time:
+4. Seal the machine config for the first time:
     ```bash
     iiotctl connect talos
+    ```
+    ```bash
     iiotctl machine seal-config
     ```
-7. commit the changes in a **new branch**
+5. Commit the changes in a **new branch**
     ```bash
     git switch -c feature/update-base && \
     git add . && \
-    git commit -m "feat: update project base to vXXXX"
+    git commit -m "feat: update project base to $(yq '._commit' .copier-answers.yml)" && \
+    git push origin feature/update-base
     ```
-    Don't merge the branch directly into main. Otherwise the new system apps will be upgraded immediately by ArgoCD.
-
-### Apply the upgrade to the box
-The following steps will depend on what things the copier upgrade has changed in the project. 
-
-- on every upgrade you should run the status task ([talos connection](/docs/interaction-talos.md) is required)
+    **Don't merge the branch directly into main.**
+6. On every upgrade you should run the status task
     ```bash
     iiotctl machine status
     ```
-- differences in the machine configuration: synchronize the configuration (in the proper apply mode)
+    * When everything is :white_check_mark: :
+      * Merge the branch `feature/update-base` on Github. **The new system apps will be upgraded immediately by ArgoCD!**
+      * Delete the branch local and remote after merge.
+    * When anything is :x: :
+      * ...
+
+## 2. Apply the upgrade to the box with `iiotctl machine sync`
+The following steps will depend on what the previous step has changed.
+
+- Apply machine configs with `iiotctl`. **Maybe the Talos reboots (a short downtime is to be expected).**
+- Apply changes in k8s-manifests with `git` and `ArgoCD`.
+
+**Requirements**
+- [talos connection](/docs/interaction-talos.md) is required
+    ```bash
+    iiotctl connect talos
+    ``````
+
+**Steps**
+
+1. Differences in the machine configuration: synchronize the configuration (in the proper apply mode)
+    ```bash
+    iiotctl machine status
+    ```
     ```
     iiotctl machine sync
     ```
-    - talos installeri mage upgrade: `--apply-mode staged`
+    - talos installer image upgrade: `--apply-mode staged`
         - use the `--force` flag to skip the version conflict
     - no talos upgrade, some machine config changes which require a reboot: `--apply-mode staged` or `--apply-mode reboot`
         - apply change **on next reboot (--mode=staged)**: change is staged to be applied after a reboot, but node is not rebooted
         - apply change **with a reboot (--mode=reboot)**: update configuration, reboot Talos node to apply configuration change
     - in all other cases use the default mode
     - **when a new talos installer image is used, a talos upgrade is always required**
-- talos / k8s version upgrade
+2. Talos / k8s version upgrade
     - **Generally you should run a talos upgrade before kubernetes upgrade!!!**
     - When upgrading Kubernetes, make sure that you do not skip any minor versions, as this can lead to errors.
         - :x: From 1.26.x to 1.28.x causes errors
@@ -85,12 +124,20 @@ The following steps will depend on what things the copier upgrade has changed in
     iiotctl machine upgrade-talos
     iiotctl machine upgrade-k8s
     ```
-- merge the update branch into main
+3. Run the status task again
+    ```bash
+    iiotctl machine status
+    ```
+    * When everything is :white_check_mark: :
+      * Merge the branch `feature/update-base` on Github. **The new system apps will be upgraded immediately by ArgoCD!**
+      * Delete the branch local and remote after merge.
+    * When anything is :x: :
+      * -> Call the Experts :phone:.
 
-- differences in the system-app manifests (`system-apps` dir):
-    - the changes will applied automatically by default when the branch is merged into main (via argo)
-    - you can also "try" the upgrade by setting the branch of an system app in argo to the upgrade branch ([interacting with k8s](/docs/interaction-k8s.md))
-    - when everything has been upgraded by argo, you should check the applications to see if everything is working properly and delete old resources
+    **Experts only:**
+   * you can also "try" the upgrade by setting the branch of an system app in argo to the upgrade branch ([interacting with k8s](/docs/interaction-k8s.md)
+
+4. When everything has been synced and upgraded by ArgoCD, you should check the applications to see if everything is working properly. (Maybe delete old resources in ArgoCD
 
 ---
 
@@ -177,7 +224,7 @@ When you upgrade a project to v2.x.x follow these steps:
     ```
 16. upgrade k8s, this must be done in two steps: 1.26.X -> 1.27.4 -> 1.28.X
 
-    change the k8s version in `iiotctl-taks/task_config.json` and start the first upgrade: `iiotctl machine upgrade-k8s`, after this run the second k8s upgrade
+    change the k8s version in `iiotctl-tasks/task_config.json` and start the first upgrade: `iiotctl machine upgrade-k8s`, after this run the second k8s upgrade
     ```bash
     iiotctl machine upgrade-k8s
     ```

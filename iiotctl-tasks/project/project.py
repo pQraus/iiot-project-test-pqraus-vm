@@ -7,9 +7,9 @@ from typing_extensions import Annotated
 from .._utils import _teleport as teleport
 from .._utils._common import PrintStyle, print_style
 from .._utils._config import (CONTAINER_REGISTRIES, IS_DEV_ENV,
-                              REMOTE_MONITORING, TELEPORT_ENABLED)
+                              REMOTE_MONITORING, REPO_README, TELEPORT_ENABLED)
 from . import (_create_token, _render_manifests, _seal_secret, _setup_repo,
-               _setup_tools)
+               _setup_tools, _upgrade_base)
 
 app = typer.Typer(name="project", help="Create and configure machine repository.")
 
@@ -40,6 +40,9 @@ def setup(
     typer.confirm("Are you sure you want to start the project setup ?", default=True, abort=True)
 
     print_style("Initializing box:", PrintStyle.BOLD)
+
+    _upgrade_base.update_repo_readme() if REPO_README.exists() else _upgrade_base.create_repo_readme()
+
     if not no_tooling:
         print_style("\nSetup tools:\n", PrintStyle.BOLD)
         _setup_tools.setup_tools(setup_required=True)
@@ -76,13 +79,13 @@ def upgrade(
     no_render_manifests: Annotated[
         bool, typer.Option("--no-render-manifests", help="don't render helm manifests")
     ] = False,
+    no_render_readme: Annotated[
+        bool, typer.Option("--no-render-readme", help="don't render repo readme file")
+    ] = False,
 ):
-    """upgrade repo files after base update"""
+    """upgrade repo files after base update; create update branch + commit all changes"""
 
-    if not no_set_up_tooling:
-        setup_tools()
-    if not no_render_manifests:
-        render_argo_manifests()
+    _upgrade_base.upgrade(not no_set_up_tooling, not no_render_manifests, not no_render_readme)
 
 
 @app.command(rich_help_panel="Lowlevel Commands")

@@ -14,10 +14,10 @@ from ._local_access import (configure_local_k8s_access,
 
 @check.dependency(*DEP_TSH)
 @check.dependency(*DEP_TALOSCTL)
-def connect_talos(local_port: int, local_ip: str, ttl: str, talosconfig: str):
+def connect_talos(local_port: int, machine_ip: str | None, ttl: str, talosconfig: str):
 
-    if local_ip:
-        configure_local_talos_access(local_ip, ttl, talosconfig)
+    if machine_ip is not None:
+        configure_local_talos_access(machine_ip, ttl, talosconfig)
         return
 
     teleport.login()
@@ -51,10 +51,10 @@ def connect_talos(local_port: int, local_ip: str, ttl: str, talosconfig: str):
 
 @check.dependency(*DEP_TSH)
 @check.dependency(*DEP_KUBECTL)
-def connect_k8s(local_ip: str, ttl: str, kubeconfig: str):
+def connect_k8s(machine_ip: str | None, ttl: str, kubeconfig: str):
 
-    if local_ip:
-        configure_local_k8s_access(local_ip, ttl, kubeconfig)
+    if machine_ip is not None:
+        configure_local_k8s_access(machine_ip, ttl, kubeconfig)
         return
 
     teleport.login()
@@ -70,16 +70,16 @@ def connect_k8s(local_ip: str, ttl: str, kubeconfig: str):
 
 @check.dependency(*DEP_KUBECTL)
 @check.dependency(*DEP_TSH)
-def connect_argo(local_port: int, use_current_context: bool, kubeconfig: str):
+def connect_argo(local_port: int, local_address: str, use_current_context: bool, kubeconfig: str):
 
-    if not use_current_context:
+    if use_current_context is False:
         teleport.login()
         teleport.login_k8s()
 
     check.k8s_connection(kubeconfig)
 
     print()
-    link = f"http://localhost:{local_port}/argocd"
+    link = f"http://{local_address}:{local_port}/argocd"
     print(f"Argo is available at: [link={link}]{link}[/link])")
 
     Command.check_output(
@@ -90,6 +90,8 @@ def connect_argo(local_port: int, use_current_context: bool, kubeconfig: str):
             "argocd",
             "services/argocd-server",
             f"{local_port}:80",
+            "--address",
+            local_address,
             "--kubeconfig",
             Path(kubeconfig)
         ]
@@ -98,26 +100,27 @@ def connect_argo(local_port: int, use_current_context: bool, kubeconfig: str):
 
 @check.dependency(*DEP_KUBECTL)
 @check.dependency(*DEP_TSH)
-def connect_traefik(local_port: int, use_current_context: bool, kubeconfig: str):
+def connect_traefik(local_port: int, local_address: str, use_current_context: bool, kubeconfig: str):
+    LOCAL_ADDRESSES = ('localhost', '127.0.0.1', '0.0.0.0')
 
-    if not use_current_context:
+    if use_current_context is False:
         teleport.login()
         teleport.login_k8s()
 
     check.k8s_connection(kubeconfig)
 
     print()
-    print("Connecting to traefik ...")
-    print()
+    if local_address in LOCAL_ADDRESSES:
+        print("Access apps behind Traefik via:")
+        print(f"  - path: 'http://{local_address}:{local_port}" + "/{APP_PATH}'")
+        print(f"  - subdomain at: 'http://{{APP_SUBDOMAIN}}.localhost:{local_port}'")
 
-    print("Access apps via:")
-    print("  - subdomain at: 'http://{APP_SUBDOMAIN}" + f".localhost:{local_port}'")
-    print(f"  - path: 'http://localhost:{local_port}" + "/{APP_PATH}'")
-
-    print()
-    print("For more detailed informations visit:")
-    link = "http://traefik.localhost:3000/dashboard/#/"
-    print(f"  - [link={link}]{link}[/link]")
+        print()
+        link = f"http://traefik.localhost:{local_port}/dashboard/#/"
+        print(f"Traefik Dashboard is available at: [link={link}]{link}[/link]")
+    else:
+        print("Access apps behind Traefik via:")
+        print(f"  - path: 'http://{local_address}:{local_port}" + "/{APP_PATH}'")
 
     Command.check_output(
         cmd=[
@@ -127,6 +130,8 @@ def connect_traefik(local_port: int, use_current_context: bool, kubeconfig: str)
             "traefik",
             "service/traefik",
             f"{local_port}:80",
+            "--address",
+            local_address,
             "--kubeconfig",
             Path(kubeconfig)
         ]
