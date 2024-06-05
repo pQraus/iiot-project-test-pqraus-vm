@@ -7,8 +7,9 @@ from packaging.version import parse as parse_version
 from rich import print
 from rich.table import Table
 
-from .._utils._common import Command, print_error
-from .._utils._config import ASDF_PLUGINS, REPO_ROOT
+from .._utils._common import Command, TyperAbort
+from .._utils._config import ASDF_PLUGINS
+from .._utils._constants import REPO_ROOT
 
 
 def _get_local_project_tools():
@@ -16,8 +17,7 @@ def _get_local_project_tools():
     with open(REPO_ROOT / ".tool-versions") as rd:
         exp_tools = rd.read().split("\n")[1:-1]
         if not exp_tools:
-            print_error("Project has no tool version requirements.")
-            raise typer.Abort()
+            raise TyperAbort("Project has no tool version requirements.")
 
     return dict(line.split(" ")[:2] for line in exp_tools)  # dict with key-value pairs: {TOOL_NAME: VERSION}
 
@@ -97,8 +97,7 @@ def _install_required_tools(exp_tools: Dict[str, str], to_install: List[str]):
 
 def setup_tools(setup_required: bool):
     if not Path(REPO_ROOT / ".tool-versions").exists():
-        print_error("Missing local '.tool-versions' file to retrieve tool version requirements.")
-        raise typer.Abort()
+        raise TyperAbort("Missing local '.tool-versions' file to retrieve tool version requirements.")
 
     exp_tools = _get_local_project_tools()
     path_glob_vers = Path(os.path.expanduser("~")) / ".tool-versions"

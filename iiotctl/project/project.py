@@ -5,11 +5,11 @@ from rich import print
 from typing_extensions import Annotated
 
 from .._utils import _teleport as teleport
-from .._utils._common import PrintStyle, print_style
 from .._utils._config import (CONTAINER_REGISTRIES, IS_DEV_ENV,
                               REMOTE_MONITORING, TELEPORT_ENABLED)
+from .._utils._constants import REPO_README
 from . import (_create_token, _render_manifests, _seal_secret, _setup_repo,
-               _setup_tools)
+               _setup_tools, _upgrade_base)
 
 app = typer.Typer(name="project", help="Create and configure machine repository.")
 
@@ -39,22 +39,25 @@ def setup(
     """
     typer.confirm("Are you sure you want to start the project setup ?", default=True, abort=True)
 
-    print_style("Initializing box:", PrintStyle.BOLD)
+    typer.secho("Initializing box:", bold=True)
+
+    _upgrade_base.update_repo_readme() if REPO_README.exists() else _upgrade_base.create_repo_readme()
+
     if not no_tooling:
-        print_style("\nSetup tools:\n", PrintStyle.BOLD)
+        typer.secho("\nSetup tools:\n", bold=True)
         _setup_tools.setup_tools(setup_required=True)
 
     teleport.login()
     print()
 
     if not no_manifests:
-        print_style("\nRender manifests:\n", PrintStyle.BOLD)
+        typer.secho("\nRender manifests:\n", bold=True)
         _render_manifests.render_argo_manifests(["*"])
     if not no_sealed_secret:
-        print_style("\nSealed secret bootstrap:\n", PrintStyle.BOLD)
+        typer.secho("\nSealed secret bootstrap:\n", bold=True)
         _seal_secret.seal_secret(bootstrap=True)
     if not no_tokens:
-        print_style("\nCreate tokens:\n", PrintStyle.BOLD)
+        typer.secho("\nCreate tokens:\n", bold=True)
         _create_token.create_token(
             docker=bool("docker" in CONTAINER_REGISTRIES),
             schulz_registry=bool("schulz_registry" in CONTAINER_REGISTRIES),
@@ -64,7 +67,7 @@ def setup(
             dev=IS_DEV_ENV
         )
     if not no_github_repo:
-        print_style("\nSetup github repo:\n", PrintStyle.BOLD)
+        typer.secho("\nSetup github repo:\n", bold=True)
         _setup_repo.configure_github_repository(initialize=True, commit_msg="Initital commit", override=False)
 
 
@@ -76,13 +79,13 @@ def upgrade(
     no_render_manifests: Annotated[
         bool, typer.Option("--no-render-manifests", help="don't render helm manifests")
     ] = False,
+    no_render_readme: Annotated[
+        bool, typer.Option("--no-render-readme", help="don't render repo readme file")
+    ] = False,
 ):
-    """upgrade repo files after base update"""
+    """upgrade repo files after base update; create update branch + commit all changes"""
 
-    if not no_set_up_tooling:
-        setup_tools()
-    if not no_render_manifests:
-        render_argo_manifests()
+    _upgrade_base.upgrade(not no_set_up_tooling, not no_render_manifests, not no_render_readme)
 
 
 @app.command(rich_help_panel="Lowlevel Commands")

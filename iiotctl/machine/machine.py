@@ -3,8 +3,8 @@ from typing import List
 import typer
 from typing_extensions import Annotated
 
-from .._utils._config import (DEFAULT_MACHINE_CONFIG_ID, REPO_ROOT,
-                              TASKS_TMP_DIR)
+from .._utils._constants import (DEFAULT_MACHINE_CONFIG_ID, REPO_ROOT,
+                                 TASKS_TMP_DIR)
 from . import _bootstrap, _status, _sync, _talos_config, _upgrade
 
 app = typer.Typer(name="machine", help="Interact with live machine via established connection.")
@@ -12,7 +12,7 @@ app = typer.Typer(name="machine", help="Interact with live machine via establish
 
 @app.command()
 def bootstrap(
-    ip: Annotated[str, typer.Argument(help="IP address of the box which should be bootstrapped")],
+    machine_ip: Annotated[str, typer.Argument(help="IP address of the box which should be bootstrapped")],
     out_mc: Annotated[str, typer.Option("--out-mc", help="output file path for the generated machine config")] = None,
     dry_run: Annotated[bool, typer.Option("--dry-run", "-d", help="bootstrap without applying to the machine")] = False,
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="verbose status messages")] = False,
@@ -40,7 +40,7 @@ def bootstrap(
     >>> iiotctl machine bootstrap 192.168.23.2 --out-mc "mc.json"
     """
 
-    _bootstrap.bootstrap(ip, out_talosconfig, out_mc, dry_run, force, verbose)
+    _bootstrap.bootstrap(machine_ip, out_talosconfig, out_mc, dry_run, force, verbose)
 
 
 @app.command()
@@ -160,6 +160,9 @@ def upgrade_talos(
 def upgrade_k8s(
     dry_run: Annotated[bool, typer.Option("--dry-run", "-d", help="execute the upgrade in dry-run mode")] = False,
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="verbose status messages")] = False,
+    preload: Annotated[
+        bool, typer.Option("--preload", help="preload k8s images onto live machine for later update")
+    ] = False,
     use_current_contexts: Annotated[
         bool,
         typer.Option(
@@ -181,7 +184,7 @@ def upgrade_k8s(
         Useful if you want to connect via local k8s + talos certs and contexts, without teleport.
     """
 
-    _upgrade.upgrade_k8s(use_current_contexts, dry_run, verbose)
+    _upgrade.upgrade_k8s(use_current_contexts, preload, dry_run, verbose)
 
 
 @app.command()

@@ -2,16 +2,16 @@ import json
 from pathlib import Path
 from typing import Dict
 
-import typer
 import yaml
 from rich import print
 
 from .._utils import _check as check
 from .._utils import _common as common
 from .._utils import _talosctl as talosctl
-from .._utils._common import print_error, print_if
-from .._utils._config import (BOX_NAME, DEP_GPG, DEP_JQ, DEP_TALOSCTL,
-                              PATCH_LOCATIONS, REPO_ROOT, TALOS_CONFIG_PROJECT)
+from .._utils._common import TyperAbort, print_if
+from .._utils._config import BOX_NAME, DEP_GPG, DEP_JQ, DEP_TALOSCTL
+from .._utils._constants import (PATCH_LOCATIONS, REPO_ROOT,
+                                 TALOS_CONFIG_PROJECT)
 from .._utils._installer_spec_config import load_repo_installer_image_ref
 from . import _talos_config as talos_config
 
@@ -37,7 +37,7 @@ def _update_talosconfig(ip: str, talosconfig: bytes):
 @check.dependency(*DEP_GPG)
 @check.dependency(*DEP_TALOSCTL)
 def bootstrap(
-    ip: str,
+    machine_ip: str,
     out_talosconfig: str,
     out_mc: str,
     dry_run: bool,
@@ -45,7 +45,7 @@ def bootstrap(
     verbose: bool,
 ):
 
-    check.ip(ip)
+    check.ip(machine_ip)
     patch_files = common.glob_files(REPO_ROOT, *PATCH_LOCATIONS)
 
     installer_image = load_repo_installer_image_ref()
@@ -57,17 +57,18 @@ def bootstrap(
 
     print()
     if out_talosconfig and Path(out_talosconfig).exists() and not force:
-        print_error(f"Talosconfig ({out_talosconfig}) already exist")
-        print_error("Delete the file or run the command with the '--force' flag")
-        raise typer.Abort()
+        raise TyperAbort(
+            f"Talosconfig ({out_talosconfig}) already exist",
+            "Delete the file or run the command with the '--force' flag"
+        )
 
     if out_mc and Path(out_mc).exists() and not force:
-        print_error(f"Machine config ({out_mc}) already exist")
-        print_error("Delete the file or run the command with the '--force' flag")
-        raise typer.Abort()
+        raise TyperAbort(
+            f"Machine config ({out_mc}) already exist", "Delete the file or run the command with the '--force' flag"
+        )
 
     if out_talosconfig:
-        updated_talosconfig = _update_talosconfig(ip, talosconfig)
+        updated_talosconfig = _update_talosconfig(machine_ip, talosconfig)
         with open(out_talosconfig, "w") as f_config:
             f_config.write(updated_talosconfig)
 
@@ -86,9 +87,9 @@ def bootstrap(
 
     common.print_if("", verbose)
     common.print_if("Config creation finished successfully", verbose)
-    print(f"Applying the initial config to the machine ({ip})...")
+    print(f"Applying the initial config to the machine ({machine_ip})...")
 
-    talosctl.apply_mc(initial_mc, insecure=True, nodes=ip)
+    talosctl.apply_mc(initial_mc, insecure=True, nodes=machine_ip)
 
     print("Seal the initial config")
     talos_config.seal(initial_mc)

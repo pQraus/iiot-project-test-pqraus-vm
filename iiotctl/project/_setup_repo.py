@@ -6,8 +6,9 @@ from rich import print
 
 from .._utils import _check as check
 from .._utils import _common as common
-from .._utils._common import Command, print_error
-from .._utils._config import DEP_GH, PROJECT_REPO, REPO_ON_GITHUB, REPO_ROOT
+from .._utils._common import Command, TyperAbort
+from .._utils._config import DEP_GH, PROJECT_REPO, REPO_ON_GITHUB
+from .._utils._constants import REPO_ROOT
 
 
 def _create_git_credential_boot_manifest(credential_src_file: Path, template_file: Path, credential_dst_file: Path):
@@ -39,8 +40,7 @@ def _check_gh_status():
     )
 
     if "gho_" not in status:
-        print_error("To execute this task, you have to be logged into the tool 'gh' via browser, not via PAT.")
-        raise typer.Abort()
+        raise TyperAbort("To execute this task, you have to be logged into the tool 'gh' via browser, not via PAT.")
 
 
 def _create_github_repo(override: bool):
@@ -48,8 +48,9 @@ def _create_github_repo(override: bool):
     if not Command.check_output(cmd=["gh", "search", "repos", PROJECT_REPO]):
         Command.check_output(cmd=["gh", "repo", "create", PROJECT_REPO, "--private"])
     elif not override:
-        print_error(f"Repository {PROJECT_REPO} already exists! To override github repository use flag '--override'.")
-        raise typer.Abort()
+        raise TyperAbort(
+            f"Repository {PROJECT_REPO} already exists! To override github repository use flag '--override'."
+        )
 
 
 def _init_local_git():

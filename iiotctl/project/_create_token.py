@@ -11,9 +11,9 @@ from rich import print
 from .._utils import _check as check
 from .._utils import _common as common
 from .._utils import _teleport
-from .._utils._common import Command, PrintStyle, print_error, print_style
-from .._utils._config import (BOX_NAME, CONTAINER_REGISTRIES, DEP_TCTL,
-                              DEP_TSH, REPO_ROOT)
+from .._utils._common import Command, TyperAbort, print_error
+from .._utils._config import BOX_NAME, CONTAINER_REGISTRIES, DEP_TCTL, DEP_TSH
+from .._utils._constants import REPO_ROOT
 from ._seal_secret import _check_if_sealing_possible, _seal_secret
 
 TELEPORT_APP_NAME = "box-token-provider"
@@ -203,23 +203,22 @@ def _create_provider_tokens(providers: List[Provider]):
 
 def _configure_developer_tokens(providers: List[Provider]):
 
-    print_style(
+    typer.secho(
         "Configure Schulz Dockerhub, Container Registry and Grafana access via custom usernames and access tokens:",
-        PrintStyle.UNDERLINE
+        underline=True
     )
     print()
     for provider in providers:
         provider_conf = BOX_TOKEN_PROVIDER_CONF[provider]
         if not provider_conf["validator"]():
-            raise typer.Abort()
+            raise TyperAbort()
         try:
             name = input(f"Enter '{provider}' developer username:\n") if provider != Provider.GRAFANA else ""
             token = input(f"Enter developer '{provider}' access token:\n")
             print(50*"~")
             provider_conf["file_writer"](Token(name, token))
         except Exception as ex:
-            print_error(f"While creating token: {type(ex)}; {str(ex)}")
-            raise typer.Abort()
+            raise TyperAbort(f"While creating token:", f"{type(ex)}: {str(ex)}")
 
     print("Successfully rendered access token manifests.")
 

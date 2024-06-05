@@ -4,14 +4,13 @@ from shutil import copyfile
 from typing import Any
 from uuid import uuid4
 
-import typer
 from rich import print
 
 from .._utils import _check as check
 from .._utils import _common as common
-from .._utils._common import Command, print_error
-from .._utils._config import (DEP_KUBECTL, DEP_KUBESEAL, K8S_CONFIG_USER,
-                              REPO_ROOT)
+from .._utils._common import Command, TyperAbort, print_error
+from .._utils._config import DEP_KUBECTL, DEP_KUBESEAL
+from .._utils._constants import K8S_CONFIG_USER, REPO_ROOT
 
 APP_DIR = REPO_ROOT / "system-apps/sealed-secrets"
 NAMESPACE_FILE = APP_DIR / "argo-template/resources/sealed-secrets-namespace.yaml"
@@ -183,8 +182,7 @@ def seal_secret(
         bootstrap: bool = False):
 
     if init and bootstrap:
-        print_error("You can't specify both 'init' and 'bootstrap'")
-        raise typer.Abort()
+        raise TyperAbort("You can't specify both 'init' and 'bootstrap'")
 
     if init:
         _push_new_key_to_k8s()
@@ -195,11 +193,10 @@ def seal_secret(
         return
 
     if not _check_if_sealing_possible():
-        raise typer.Abort()
+        raise TyperAbort()
 
     if not secret_file and not sealed_secret_file:
-        print_error("You must provide both the secret-file and the sealed-secret-file")
-        raise typer.Abort()
+        raise TyperAbort("You must provide both the secret-file and the sealed-secret-file")
 
     _seal_secret(secret_file, sealed_secret_file)
     print("Successfully encrypted secret")

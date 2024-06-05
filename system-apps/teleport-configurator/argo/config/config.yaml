@@ -24,12 +24,19 @@ app_service:
   apps:
     - name: talos-test-pqraus-vm
       uri: tcp://localhost:51002
+      commands:
+        - name: teleport-version
+          command: ["/teleport-agent/bin/teleport", "version", "--raw"]
+          period: 1h0m0s
       labels:
         usage: iiot
         env: dev
         kind: talos
-        remote_monitoring: False
-        base_repo_version: v2.2.0
+        base-repo-version: v2.2.0-68-g393826e
+        repo-url: https://github.com/pQraus/iiot-project-test-pqraus-vm
+        local-monitoring: False
+        remote-monitoring: False
+        
     - name: private-test-pqraus-vm
       uri: http://10.96.0.100:80
       labels:
