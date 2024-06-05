@@ -3,7 +3,6 @@ import subprocess as sp
 import sys
 from contextlib import contextmanager
 from difflib import unified_diff
-from enum import Enum
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional
 
@@ -12,24 +11,24 @@ import yaml
 from rich import print
 from rich.table import Table
 
-from ._config import ENCODING
-
-
-class PrintStyle(str, Enum):
-    BOLD = "bold"
-    UNDERLINE = "underline"
-
-
-def print_style(msg: str, style: PrintStyle, **kwargs: Dict):
-    """print message with given style"""
-    print(f"[{style}]{msg}[/]", **kwargs)
+ENCODING = sys.stdout.encoding
 
 
 def print_error(*msgs: Iterable[str], **kwargs: Dict):
     """print message colored red, prefixed with: '[ERROR]:' ..."""
     for msg in msgs:
-        if msg != "":
-            print(f"[bold red][ERROR]: {msg}[/]", file=sys.stderr, **kwargs)
+        if msg is None or not str(msg):
+            continue
+        print(f"[bold red][ERROR]: {msg}[/]", file=sys.stderr, **kwargs)
+
+
+class TyperAbort(typer.Abort):
+
+    def __init__(self, *msgs: Iterable[str]) -> None:
+        """print given error messages; raise typer abort"""
+
+        print_error(*msgs)
+        super().__init__()
 
 
 class Command:
@@ -43,9 +42,7 @@ class Command:
 
         if result.returncode and not ignore_error:
             error = result.stderr.decode() if isinstance(result.stderr, bytes) else result.stderr
-            print_error(error)
-            print_error(additional_error_msg)
-            raise typer.Abort()
+            raise TyperAbort(error, additional_error_msg)
         elif result.returncode and additional_error_msg:
             print_error(additional_error_msg)
 
@@ -153,8 +150,7 @@ def patch_yaml_file(file_path: Path = None):
 
     file_path: Path = Path(file_path)
     if not file_path.exists():
-        print_error(f"Unable to yq patch file at '{file_path}'! Doesn't exist.")
-        raise typer.Abort()
+        raise TyperAbort(f"Unable to yq patch file at '{file_path}'! Doesn't exist.")
 
     with open(file_path, "r+") as file:
         content_dict = yaml.safe_load(file.read())

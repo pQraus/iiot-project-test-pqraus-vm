@@ -1,14 +1,14 @@
 from typing import Dict
 
-import typer
 from rich import print
 from rich.table import Table
 
 from .._utils import _common as common
 from .._utils import _talosctl as talosctl
-from .._utils._common import print_error
-from .._utils._config import (EXCLUDE_SYNC_PATCHES, K8S_VERSION,
-                              PATCH_LOCATIONS, REPO_ROOT, TALOS_VERSION)
+from .._utils._common import TyperAbort
+from .._utils._config import K8S_VERSION, TALOS_VERSION
+from .._utils._constants import (EXCLUDE_SYNC_PATCHES, PATCH_LOCATIONS,
+                                 REPO_ROOT)
 from .._utils._installer_spec_config import load_repo_extension_versions
 
 
@@ -42,10 +42,10 @@ def check_if_mc_diffs(diffs: str):
         return False
 
 
-def print_status_table(new_talos_vers: str, new_k8s_vers: str, mc_diffs: bool, ext_diffs: bool, hash_diffs: bool):
+def print_status_table(live_talos_vers: str, live_k8s_vers: str, mc_diffs: bool, ext_diffs: bool, hash_diffs: bool):
     """showcase overview of repo and live machine statuses"""
-    talos_vers_diff = new_talos_vers != TALOS_VERSION
-    k8s_vers_diff = new_k8s_vers != K8S_VERSION
+    talos_vers_diff = live_talos_vers != TALOS_VERSION
+    k8s_vers_diff = live_k8s_vers != K8S_VERSION
 
     table = Table(title="Summary", show_lines=True)
     table.add_column("Synced", justify="center")
@@ -55,12 +55,12 @@ def print_status_table(new_talos_vers: str, new_k8s_vers: str, mc_diffs: bool, e
     table.add_row(
         ":x:" if talos_vers_diff else ":white_heavy_check_mark:",
         "Talos version",
-        f"repo: '{new_talos_vers}' | live: '{TALOS_VERSION}'"
+        f"repo: '{TALOS_VERSION}' | live: '{live_talos_vers}'"
     )
     table.add_row(
         ":x:" if k8s_vers_diff else ":white_heavy_check_mark:",
         "K8s version",
-        f"repo: '{new_k8s_vers}' | live: '{K8S_VERSION}'"
+        f"repo: '{K8S_VERSION}' | live: '{live_k8s_vers}'"
     )
     table.add_row(
         ":x:" if mc_diffs else ":white_heavy_check_mark:",
@@ -100,5 +100,4 @@ def compare_mc_hash(hash_diff: bool, check=False):
         print("Maybe there was a machine config change without using the 'iiotctl machine sync' task?")
         if check:
             print()
-            print_error("Run 'iiotctl machine seal-config' to explicitly overwrite the hash and seal mc")
-            raise typer.Abort()
+            raise TyperAbort("Run 'iiotctl machine seal-config' to explicitly overwrite the hash and seal mc")

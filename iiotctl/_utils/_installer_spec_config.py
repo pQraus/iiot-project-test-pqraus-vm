@@ -1,13 +1,13 @@
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Dict, List
 
-import typer
 from yaml import safe_load
 
-from ._common import print_error
-from ._config import REPO_ROOT, TALOS_INSTALLED_EXTENSIONS
+from ._common import TyperAbort
+from ._config import TALOS_INSTALLED_EXTENSIONS
 
-_INSTALLER_IMAGES_FILE = REPO_ROOT / "iiotctl-tasks" / "installer-images.yaml"
+_INSTALLER_IMAGES_FILE = Path(__file__).parent.parent / "installer-images.yaml"
 
 
 @dataclass
@@ -42,8 +42,7 @@ class InstallerSpecs:
 
     def __post_init__(self):
         if self.version != "v1":
-            print_error(f"Schema version {self.version} in {_INSTALLER_IMAGES_FILE} isn't supported")
-            raise typer.Abort()
+            raise TyperAbort(f"Schema version {self.version} in {_INSTALLER_IMAGES_FILE} isn't supported")
         self.metadata = MetaData(**self.metadata)
         self.extensions = [Extension(**ext) for ext in self.extensions]
         self.images = [InstallerImage(**im) for im in self.images]
@@ -66,8 +65,7 @@ def load_repo_extension_versions() -> Dict[str, str]:
     for ext_name in TALOS_INSTALLED_EXTENSIONS:
         extension_id = available_exts.get(ext_name)
         if extension_id is None:
-            print_error(f"Extension {ext_name} isn't defined in in {_INSTALLER_IMAGES_FILE}")
-            raise typer.Abort()
+            raise TyperAbort(f"Extension {ext_name} isn't defined in in {_INSTALLER_IMAGES_FILE}")
         extension = installer_specs.extensions[extension_id]
         repo_extension_versions[ext_name] = extension.version
     return repo_extension_versions
@@ -82,5 +80,4 @@ def load_repo_installer_image_ref() -> str:
             version = installer_specs.metadata.talos_version
             revision = installer_specs.metadata.revision
             return f"{repo}:{version}-{revision}-{image.id}"
-    print_error(f"Can't load an installer image for the extensions {TALOS_INSTALLED_EXTENSIONS}")
-    raise typer.Abort()
+    raise TyperAbort(f"Can't load an installer image for the extensions {TALOS_INSTALLED_EXTENSIONS}.")

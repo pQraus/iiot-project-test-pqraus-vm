@@ -7,11 +7,10 @@ from pathlib import Path
 from time import sleep
 from typing import Iterable, List
 
-import typer
+from ._common import Command, TyperAbort, patch_json, patch_yaml_file, print_if
+from ._constants import JQ_MODULES_DIR, REPO_ROOT
 
-from ._common import (Command, patch_json, patch_yaml_file, print_error,
-                      print_if)
-from ._config import ENCODING, JQ_MODULES_DIR, REPO_ROOT
+ENCODING = sys.stdout.encoding
 
 
 def apply_mc(mc: bytes, exit_on_failure=True, print_errors=True, **talos_args):
@@ -40,11 +39,11 @@ def apply_mc(mc: bytes, exit_on_failure=True, print_errors=True, **talos_args):
         cmd_result = Command.check(
             cmd=base_cmd + additional_args,
             ignore_error_msg=not print_errors,
-            additional_error_msg=error_msg
+            additional_error_msg=error_msg if print_errors else ""
         )
 
     if exit_on_failure and not cmd_result:
-        raise typer.Abort()
+        raise TyperAbort()
 
     return cmd_result
 
@@ -75,9 +74,7 @@ def get_live_talos_version(**talos_args):
     versions: List[str] = re.findall("Tag: *v(.*)", cmd_result)
     # 1. match: client version, 2. match: server / machine version
     if len(versions) != 2:  # exit when it's not possible to get two matches
-        print_error("Can't get the talos version from client and server:")
-        print_error(cmd_result)
-        raise typer.Abort()
+        raise TyperAbort("Can't get the talos version from client and server:", cmd_result)
 
     live_version = versions[1]
     return live_version
@@ -195,7 +192,7 @@ def patch_mc(mc: bytes, patch_files: Iterable[str], validation=True, verbose=Fal
     return mc
 
 
-def upgrade_k8s(node_name, to_version, verbose, **talos_args):
+def upgrade_k8s(node_name: str, to_version: str, pull_images: bool, verbose: bool, **talos_args):
     """upgrade k8s via talosctl and port forwarding the kube-api
 
     How a k8s upgrade on a talos machine works:
@@ -210,6 +207,7 @@ def upgrade_k8s(node_name, to_version, verbose, **talos_args):
         "upgrade-k8s",
         "--to",
         to_version,
+        f"--pre-pull-images={str(pull_images).lower()}",
         "--endpoint",
         "localhost",
     ]
@@ -228,10 +226,8 @@ def upgrade_k8s(node_name, to_version, verbose, **talos_args):
     port_forward_process = sp.Popen(port_forward_cmd, stdout=sp.DEVNULL, stderr=sp.PIPE)
     sleep(2)
     if port_forward_process.poll():  # test if the connection is ready
-        print_error("Can't forward the the api-server to your machine:\n", file=sys.stderr)
         raw_error = port_forward_process.stderr.read()
-        print_error(raw_error.decode(ENCODING), file=sys.stderr)
-        raise typer.Abort()
+        raise TyperAbort("Can't forward the the api-server to your machine:", raw_error.decode(ENCODING))
     print_if("Start the upgrade process ...", verbose)
 
     # execute the upgrade
@@ -248,7 +244,7 @@ def upgrade_k8s(node_name, to_version, verbose, **talos_args):
         port_forward_process.kill()
 
     if upgrade_process.returncode:
-        raise typer.Abort()
+        raise TyperAbort()
 
 
 def upgrade_talos(**talos_args):

@@ -1,13 +1,10 @@
-import sys
 from functools import wraps
 from ipaddress import IPv4Address
 from pathlib import Path
 from typing import Any, Optional
 
-import typer
-
-from ._common import Command, print_error
-from ._config import BOX_NAME, _config, _get_config_entry
+from ._common import Command, TyperAbort
+from ._config import BOX_NAME, TASK_CONFIG, get_config_entry
 
 
 def ip(ip: str):
@@ -15,8 +12,7 @@ def ip(ip: str):
     try:
         IPv4Address(ip)
     except ValueError as verr:
-        print_error(verr, f"Invalid ip address: {ip}", sep="\n")
-        raise typer.Abort()
+        raise TyperAbort(verr, f"Invalid ip address: {ip}")
 
 
 def dependency(tool: str, version_cmd: str, expected_version: Optional[str] = None):
@@ -33,15 +29,9 @@ def dependency(tool: str, version_cmd: str, expected_version: Optional[str] = No
 
             # version check
             if expected_version and (expected_version not in version):
-                print_error(
-                    f"Current version of {tool} is:\n {version}",
-                    file=sys.stderr,
+                raise TyperAbort(
+                    f"Current installed version of {tool} is: {version}", f"Expected version: {expected_version}"
                 )
-                print_error(
-                    f"Expect that version {expected_version} is installed",
-                    file=sys.stderr,
-                )
-                raise typer.Abort()
             func(*args, **kwargs)
 
         return wrapper_dependency
@@ -54,15 +44,14 @@ def config_parameter(param_name: str, value: Any):
     def inner(func):
         @wraps(func)
         def wrapper_check_config_parameter(*args, **kwargs):
-            param_value = _get_config_entry(_config, param_name.lower())
+            param_value = get_config_entry(TASK_CONFIG, param_name.lower())
             task_file = Path(__file__).parent.parent.name
 
             if param_value != value:
-                print_error(
-                    f"Invalid config in /{task_file}/tasks_config.json! Expected: {param_name}={value},",
-                    f"got: {param_name}={param_value}"
+                raise TyperAbort(
+                    f"Invalid config in /{task_file}/tasks_config.json!",
+                    f"Expected: {param_name}={value}, got: {param_name}={param_value}"
                 )
-                raise typer.Abort()
 
             func(*args, **kwargs)
 
@@ -88,6 +77,7 @@ def k8s_connection(kubeconfig: str):
     )
 
     if node_name.rstrip() != BOX_NAME:
-        print_error("Make sure you are connected to the correct k8s cluster.")
-        print_error(f"Expected: {BOX_NAME}, got: {node_name.rstrip()}")
-        raise typer.Abort()
+        raise TyperAbort(
+            "Make sure you are connected to the correct k8s cluster.",
+            f"Expected: {BOX_NAME}, got: {node_name.rstrip()}"
+        )

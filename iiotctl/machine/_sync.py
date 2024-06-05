@@ -7,10 +7,10 @@ from rich import print
 from .._utils import _check as check
 from .._utils import _common as common
 from .._utils import _talosctl as talosctl
-from .._utils._common import print_error
-from .._utils._config import (DEFAULT_MACHINE_CONFIG_ID, DEP_GPG, DEP_JQ,
-                              DEP_TALOSCTL, K8S_VERSION, TALOS_CONFIG_PROJECT,
+from .._utils._common import TyperAbort
+from .._utils._config import (DEP_GPG, DEP_JQ, DEP_TALOSCTL, K8S_VERSION,
                               TALOS_VERSION)
+from .._utils._constants import DEFAULT_MACHINE_CONFIG_ID, TALOS_CONFIG_PROJECT
 from .._utils._installer_spec_config import load_repo_extension_versions
 from . import _talos_config as talos_config
 from ._misc import (check_if_mc_diffs, check_if_talos_ext_diffs,
@@ -24,8 +24,7 @@ def _compare_repo_and_live_talos_version(live_talos_vers: str, force: bool):
     if version_diff_talos:
         print("You should upgrade talos to the expected version\n")
     if version_diff_talos and not force:
-        print_error("Run this task with --force to ignore the talos version diff")
-        raise typer.Abort()
+        raise TyperAbort("Run this task with --force to ignore the talos version diff")
 
 
 def _compare_repo_and_live_k8s_versions(live_k8s_vers: str, force: bool):
@@ -34,8 +33,7 @@ def _compare_repo_and_live_k8s_versions(live_k8s_vers: str, force: bool):
     if version_diff_k8s:
         print("You should upgrade k8s to the expected version\n")
     if version_diff_k8s and not force:
-        print_error("Run this task with --force to ignore the k8s version diff")
-        raise typer.Abort()
+        raise TyperAbort("Run this task with --force to ignore the k8s version diff")
 
 
 def _backup_mc(mc: bytes, out_backup: str):
@@ -119,8 +117,7 @@ def sync(
             talosctl.apply_mc(new_mc, mode=apply_mode, **config_arg)
             print("Syncing finished successfully")
 
-            if apply_mode != "staged":
-                talos_config.seal(new_mc)
+            talos_config.seal(new_mc)
 
     # reminder to upgrade talos if there are changes to installer image (e.g. the system talos extensions)
     if exts_out_of_sync:

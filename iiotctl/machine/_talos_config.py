@@ -4,17 +4,16 @@ from datetime import datetime
 from hashlib import sha256
 from typing import List
 
-import typer
 from rich import print, print_json
 
 from .._utils import _check as check
 from .._utils import _common as common
 from .._utils import _talosctl as talosctl
-from .._utils._common import Command, print_error
-from .._utils._config import (BOX_NAME, DEP_GPG, DEP_JQ, DEP_TALOSCTL,
-                              EXCLUDE_SYNC_PATCHES, JQ_MODULES_DIR,
-                              MACHINE_DIR, PATCH_LOCATIONS, REPO_ROOT,
-                              TALOS_CONFIG_PROJECT)
+from .._utils._common import Command, TyperAbort
+from .._utils._config import BOX_NAME, DEP_GPG, DEP_JQ, DEP_TALOSCTL
+from .._utils._constants import (EXCLUDE_SYNC_PATCHES, JQ_MODULES_DIR,
+                                 MACHINE_DIR, PATCH_LOCATIONS, REPO_ROOT,
+                                 TALOS_CONFIG_PROJECT)
 from .._utils._installer_spec_config import load_repo_installer_image_ref
 
 CONFIG_SEALED_DIR = MACHINE_DIR / "config-sealed"
@@ -103,8 +102,7 @@ def patch_config(
 ):
 
     if generate and fetch:
-        print_error("Invalid flags. 'Generate' and 'fetch' are mutually exclusive.")
-        raise typer.Abort()
+        raise TyperAbort("Invalid flags. 'Generate' and 'fetch' are mutually exclusive.")
 
     patch_files = common.glob_files(REPO_ROOT, *patch_file_pattern) if patch_file_pattern else []
 
@@ -125,8 +123,7 @@ def patch_config(
         talosctl.validate_mc(mc)
 
     if not patch_files:
-        print_error("No patch files found.")
-        raise typer.Abort()
+        raise TyperAbort("No patch files found.")
 
     if verbose:
         print(file=sys.stderr)

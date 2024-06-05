@@ -20627,6 +20627,8 @@ metadata:
 apiVersion: v1
 data:
   applicationsetcontroller.policy: create-only
+  controller.operation.processors: "1"
+  controller.status.processors: "2"
   server.insecure: "true"
   server.rootpath: /argocd
 kind: ConfigMap
@@ -22031,3 +22033,29 @@ spec:
     services:
     - name: argocd-server
       port: 80
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: argocd-server-default
+  namespace: argocd
+spec:
+  entryPoints:
+  - private
+  routes:
+  - kind: Rule
+    match: Path(`/`)
+    middlewares:
+    - name: add-argocd-prefix
+    services:
+    - name: argocd-server
+      port: 80
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: add-argocd-prefix
+  namespace: argocd
+spec:
+  addPrefix:
+    prefix: /argocd
