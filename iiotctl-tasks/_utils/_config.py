@@ -63,7 +63,6 @@ def _get_config_entry(config: dict, entry_name: str):
 
 REPO_ROOT = Path(__file__).parent.parent.parent.resolve()
 MACHINE_DIR = REPO_ROOT / "machine"
-REPO_README = REPO_ROOT / "README.md"
 JQ_MODULES_DIR = MACHINE_DIR / "jq-utils"
 TALOS_CONFIG_PROJECT = MACHINE_DIR / "talosconfig-teleport"
 TALOS_CONFIG_USER = Path.home() / ".talos" / "config"
@@ -81,7 +80,6 @@ _config_file = Path(__file__).parent.parent / "tasks_config.json"
 _config = _load_configuration(_config_file)
 
 BOX_NAME: str = _get_config_entry(_config, "box_name")
-BASE_REPO_VERSION: str = _get_config_entry(_config, "base_repo_version")
 K8S_VERSION: str = _get_config_entry(_config, "k8s_version")
 LOCAL_K8S_ACCESS: bool = _get_config_entry(_config, "local_k8s_access")
 PROJECT_REPO: str = _get_config_entry(_config, "project_repo")

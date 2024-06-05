@@ -22,9 +22,9 @@ def _get_teleport_key_cert(ttl: str):
 @check.dependency(*DEP_TALOSCTL)
 @check.dependency(*DEP_TSH)
 @check.dependency(*DEP_TCTL)
-def configure_local_talos_access(machine_ip: str, ttl: str, talosconfig: str):
+def configure_local_talos_access(ip: str, ttl: str, talosconfig: str):
 
-    check.ip(machine_ip)
+    check.ip(ip)
 
     print("Create a teleport certificate to access the machine's talos api in local network ...")
     teleport.login()
@@ -41,8 +41,8 @@ def configure_local_talos_access(machine_ip: str, ttl: str, talosconfig: str):
         root_ca: str = config["contexts"][BOX_NAME]["ca"]
 
     context_values = {
-        'endpoints': [f'{machine_ip}:51001'],
-        'nodes': [machine_ip],
+        'endpoints': [f'{ip}:51001'],
+        'nodes': [ip],
         'ca': root_ca.replace('\n', ''),
         'crt': cert_b64.decode(ENCODING),
         'key': key_b64.decode(ENCODING),
@@ -62,9 +62,9 @@ def configure_local_talos_access(machine_ip: str, ttl: str, talosconfig: str):
 @check.dependency(*DEP_KUBECTL)
 @check.dependency(*DEP_TSH)
 @check.dependency(*DEP_TCTL)
-def configure_local_k8s_access(machine_ip: str, ttl: str, kubeconfig: str):
+def configure_local_k8s_access(ip: str, ttl: str, kubeconfig: str):
 
-    check.ip(machine_ip)
+    check.ip(ip)
 
     print("Create a teleport certificate to access the machine's k8s api in local network ...")
     teleport.login()
@@ -80,7 +80,7 @@ def configure_local_k8s_access(machine_ip: str, ttl: str, kubeconfig: str):
     config = ["kubectl", "config", "--kubeconfig", kubeconfig]
 
     # add local k8s cluster into kubeconfig
-    Command.check_output(config + ["set-cluster", user, "--server", "https://" + machine_ip + ":51011"])
+    Command.check_output(config + ["set-cluster", user, "--server", "https://" + ip + ":51011"])
     Command.check_output(config + ["set", f"clusters.{user}.certificate-authority-data", root_ca])
 
     # add local k8s context into kubeconfig

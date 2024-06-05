@@ -6,13 +6,6 @@ data:
   # an applicationsset should only create the applications not modify them 
   # (e.g. to enable that a user can disable the auto-synch)
   applicationsetcontroller.policy: 'create-only'
-
-  # recommended for 1000 applications: 50 status processors + 25 operation processors
-  # => since we mostly have around 8-20 applications maybe we could down-scale the processors to a twenty-fifth
-  # of their default count, servicing a max of around ~40 applications
-  # see: https://argo-cd.readthedocs.io/en/stable/operator-manual/high_availability/#argocd-application-controller
-  controller.operation.processors: '1'
-  controller.status.processors: '2'
   
   # run server (ui) without TLS
   server.insecure: 'true'

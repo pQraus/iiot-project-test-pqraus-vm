@@ -119,7 +119,8 @@ def sync(
             talosctl.apply_mc(new_mc, mode=apply_mode, **config_arg)
             print("Syncing finished successfully")
 
-            talos_config.seal(new_mc)
+            if apply_mode != "staged":
+                talos_config.seal(new_mc)
 
     # reminder to upgrade talos if there are changes to installer image (e.g. the system talos extensions)
     if exts_out_of_sync:

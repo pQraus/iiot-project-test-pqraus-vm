@@ -44,7 +44,7 @@ def status(out_diff: str, use_current_context: bool, verbose: bool):
         common.print_if("Check if a reboot is necessary to apply the new config...", verbose)
 
         apply_no_reboot = talosctl.apply_mc(
-            new_mc, mode="no-reboot", dry_run=True, exit_on_failure=False, print_errors=False, **config_arg
+            new_mc, mode="no-reboot", dry_run=True, exit_on_failure=False, **config_arg
         )
         # if mc can't be applied without reboot
         if not apply_no_reboot:
