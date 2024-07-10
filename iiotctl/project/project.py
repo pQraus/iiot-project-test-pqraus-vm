@@ -6,7 +6,8 @@ from typing_extensions import Annotated
 
 from .._utils import _teleport as teleport
 from .._utils._config import (CONTAINER_REGISTRIES, IS_DEV_ENV,
-                              REMOTE_MONITORING, TELEPORT_ENABLED)
+                              REMOTE_MONITORING, TELEPORT_ENABLED,
+                              TELEPORT_PROXY_URL)
 from .._utils._constants import REPO_README
 from . import (_create_token, _render_manifests, _seal_secret, _setup_repo,
                _setup_tools, _upgrade_base)
@@ -47,7 +48,7 @@ def setup(
         typer.secho("\nSetup tools:\n", bold=True)
         _setup_tools.setup_tools(setup_required=True)
 
-    teleport.login()
+    teleport.login(TELEPORT_PROXY_URL)
     print()
 
     if not no_manifests:
@@ -82,10 +83,13 @@ def upgrade(
     no_render_readme: Annotated[
         bool, typer.Option("--no-render-readme", help="don't render repo readme file")
     ] = False,
+    no_update_branch: Annotated[
+        bool, typer.Option("--no-update-branch", help="don't create update branch on main + dont' autocommit changes")
+    ] = False
 ):
     """upgrade repo files after base update; create update branch + commit all changes"""
 
-    _upgrade_base.upgrade(not no_set_up_tooling, not no_render_manifests, not no_render_readme)
+    _upgrade_base.upgrade(not no_set_up_tooling, not no_render_manifests, not no_render_readme, not no_update_branch)
 
 
 @app.command(rich_help_panel="Lowlevel Commands")

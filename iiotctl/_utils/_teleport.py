@@ -1,15 +1,13 @@
 import json
-import subprocess as sp
 import tempfile
 from pathlib import Path
 
 from rich import print
 
 from ._common import Command
-from ._config import BOX_NAME, TELEPORT_PROXY_URL
 
 
-def create_local_cert(ttl):
+def create_local_cert(ttl: str):
     """create a teleport cert which can be used for local access via tctl
 
     ensure that the user is logged in to teleport"""
@@ -26,7 +24,7 @@ def create_local_cert(ttl):
     with tempfile.TemporaryDirectory("teleport-crt") as td:
         tmp_dir = Path(td)
         cert_files = tmp_dir / "teleport"
-        sp.run(
+        Command.check_output(
             [
                 "tctl",
                 "auth",
@@ -39,9 +37,7 @@ def create_local_cert(ttl):
                 username,
                 "--ttl",
                 ttl,
-            ],
-            check=True,
-            capture_output=True
+            ]
         )
         # load the cert and key as vars
         cert_file = cert_files.with_suffix(".crt")
@@ -54,7 +50,7 @@ def create_local_cert(ttl):
     return cert, key
 
 
-def login(proxy_url=TELEPORT_PROXY_URL):
+def login(proxy_url: str):
     """log in an user to teleport"""
 
     logged_in = Command.check(cmd=["tsh", "status"])
@@ -72,7 +68,7 @@ def login(proxy_url=TELEPORT_PROXY_URL):
     )
 
 
-def login_app(app_name):
+def login_app(app_name: str):
     """log in to a teleport app
 
     ensure that the user is logged in to teleport"""
@@ -83,7 +79,7 @@ def login_app(app_name):
     )
 
 
-def login_k8s(cluster=BOX_NAME):
+def login_k8s(cluster: str):
     """log in to a k8s cluster via teleport
 
     ensure that the user is logged in to teleport"""
@@ -106,7 +102,7 @@ def login_k8s(cluster=BOX_NAME):
     print()
 
 
-def proxy_app(app_name, local_port: int):
+def proxy_app(app_name: str, local_port: int):
     """proxy a teleport app to *local_port*
 
     before this action you must login to the app

@@ -1,10 +1,9 @@
 from functools import wraps
 from ipaddress import IPv4Address
-from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
+from . import _kubectl as kubectl
 from ._common import Command, TyperAbort
-from ._config import BOX_NAME, TASK_CONFIG, get_config_entry
 
 
 def ip(ip: str):
@@ -39,45 +38,13 @@ def dependency(tool: str, version_cmd: str, expected_version: Optional[str] = No
     return inner
 
 
-def config_parameter(param_name: str, value: Any):
-    """check if 'tasks_config.json' parameter equals 'value'"""
-    def inner(func):
-        @wraps(func)
-        def wrapper_check_config_parameter(*args, **kwargs):
-            param_value = get_config_entry(TASK_CONFIG, param_name.lower())
-            task_file = Path(__file__).parent.parent.name
-
-            if param_value != value:
-                raise TyperAbort(
-                    f"Invalid config in /{task_file}/tasks_config.json!",
-                    f"Expected: {param_name}={value}, got: {param_name}={param_value}"
-                )
-
-            func(*args, **kwargs)
-
-        return wrapper_check_config_parameter
-
-    return inner
-
-
-def k8s_connection(kubeconfig: str):
+def k8s_connection(cluster_name: str, kubeconfig: str):
     """check if connected to correct k8s cluster; raise if not"""
 
-    node_name = Command.check_output(
-        cmd=[
-            "kubectl",
-            "get",
-            "nodes",
-            "-o",
-            "jsonpath={.items[*].metadata.name}",
-            "--kubeconfig",
-            Path(kubeconfig)
-        ],
-        additional_error_msg="Unable to retrieve k8s node name."
-    )
+    node_name = kubectl.fetch(resource="nodes", format="jsonpath={.items[*].metadata.name}", kubeconfig=kubeconfig)
 
-    if node_name.rstrip() != BOX_NAME:
+    if node_name.rstrip() != cluster_name:
         raise TyperAbort(
             "Make sure you are connected to the correct k8s cluster.",
-            f"Expected: {BOX_NAME}, got: {node_name.rstrip()}"
+            f"Expected: {cluster_name}, got: {node_name.rstrip()}"
         )

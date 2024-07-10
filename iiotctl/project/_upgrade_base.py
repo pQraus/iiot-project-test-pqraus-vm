@@ -13,7 +13,7 @@ from ._setup_tools import setup_tools
 _README_HEADER = f"# iiot-project-{BOX_NAME}"
 _BADGE_DATA = {
     "Base": {
-        "version": BASE_REPO_VERSION.lstrip("v").replace("-", "--"),
+        "version": BASE_REPO_VERSION.removeprefix("v").replace("-", "--"),
         "color": "orange"
     },
     "Talos": {
@@ -26,7 +26,9 @@ _BADGE_DATA = {
     }
 }
 _BADGE_TXT = "![Static Badge](https://img.shields.io/badge/v{version}-{color}?label={label})"
-_BADGES = "\n".join([_BADGE_TXT.format(label=k, version=v["version"], color=v["color"]) for k, v in _BADGE_DATA.items()])
+_BADGES = "\n".join(
+    [_BADGE_TXT.format(label=k, version=v["version"], color=v["color"]) for k, v in _BADGE_DATA.items()]
+)
 
 
 def update_repo_readme():
@@ -65,23 +67,38 @@ def create_repo_readme():
         file.write(_BADGES)
 
 
-def upgrade(set_up_tooling: bool, render_manifests: bool, render_readme: bool):
+def _check_if_uncommited_changes():
+    return bool(Command.check_output(["git", "status", "-s"]))
+
+
+def _create_update_branch():
+    """create update branch either from main (default) or current branch if no merge conflicts """
+    on_main = Command.check_output(["git", "branch", "--show-current"]).rstrip() == "main"
+    if not on_main:
+        typer.confirm(
+            "You are currently not on the 'main' branch. Do you still want to continue with the upgrade?", abort=True
+        )
+
+    merge_conflict = Command.check_output(["git", "diff", "--name-only", "--diff-filter=U", "--relative"])
+    if merge_conflict:
+        raise TyperAbort(
+            merge_conflict, "First resolve, but don't commit, all merge conflicts before starting upgrade process."
+        )
+
+    if on_main:
+        update_branch = f"update/base-{BASE_REPO_VERSION}"
+        if update_branch in Command.check_output(["git", "branch"]):
+            raise TyperAbort(f"Update branch '{update_branch}' already exists.")
+
+        print(f"Create update branch '{update_branch}' on 'main'.")
+        Command.check_output(["git", "checkout", "main"])
+        Command.check_output(["git", "checkout", "-b", f"update/base-{BASE_REPO_VERSION}"])
+
+
+def upgrade(set_up_tooling: bool, render_manifests: bool, render_readme: bool, create_update_branch: bool):
     """creates new update branch from main; updates tools + argo manifests; commits changes"""
-    has_merge_conflict = Command.check_output(["git", "diff", "--name-only", "--diff-filter=U", "--relative"])
-    if has_merge_conflict:
-        raise TyperAbort("First solve all merge conflicts before starting upgrade process.")
-    
-    if not Command.check_output(["git", "status", "-s"]):
-        raise TyperAbort("No file changes found to upgrade repo with.")
-
-    update_branch = f"update/base-{BASE_REPO_VERSION}"
-
-    if update_branch in Command.check_output(["git", "branch"]):
-        raise TyperAbort(f"Update branch '{update_branch}' already exists.")
-
-    print(f"Create update branch '{update_branch}' on main.")
-    Command.check_output(["git", "checkout", "main"])
-    Command.check_output(["git", "checkout", "-b", f"update/base-{BASE_REPO_VERSION}"])
+    if create_update_branch:
+        _create_update_branch()
 
     if render_readme:
         if REPO_README.exists():
@@ -91,8 +108,9 @@ def upgrade(set_up_tooling: bool, render_manifests: bool, render_readme: bool):
             print("Initialize README.md.")
             create_repo_readme()
 
-    Command.check_output(["git", "add", "."])
-    Command.check_output(["git", "commit", "-m", "feat: update base repo version"])
+    if create_update_branch and _check_if_uncommited_changes():
+        Command.check_output(["git", "add", "."])
+        Command.check_output(["git", "commit", "-m", "feat: update base repo version"])
 
     if set_up_tooling:
         typer.secho("\nSet up / update repo tooling:\n", bold=True)
@@ -100,6 +118,6 @@ def upgrade(set_up_tooling: bool, render_manifests: bool, render_readme: bool):
     if render_manifests:
         typer.secho("\nRe-render all argo manifests:\n", bold=True)
         render_argo_manifests(["*"])
-        if Command.check_output(["git", "status", "-s"]):
+        if create_update_branch and _check_if_uncommited_changes():
             Command.check_output(["git", "add", "."])
             Command.check_output(["git", "commit", "-m", "feat: update argo manifests"])

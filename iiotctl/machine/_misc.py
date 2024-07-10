@@ -6,7 +6,8 @@ from rich.table import Table
 from .._utils import _common as common
 from .._utils import _talosctl as talosctl
 from .._utils._common import TyperAbort
-from .._utils._config import K8S_VERSION, TALOS_VERSION
+from .._utils._config import (K8S_VERSION, TALOS_INSTALLED_EXTENSIONS,
+                              TALOS_VERSION)
 from .._utils._constants import (EXCLUDE_SYNC_PATCHES, PATCH_LOCATIONS,
                                  REPO_ROOT)
 from .._utils._installer_spec_config import load_repo_extension_versions
@@ -25,7 +26,8 @@ def check_if_talos_ext_diffs(live_exts: Dict[str, str], repo_exts: Dict[str, str
     """checks if live and repo talos extensions are unequal"""
     if live_exts != repo_exts:
         print("[bold]The talos system extensions are out of sync:[/]\n")
-        common.print_talos_extension_changes(load_repo_extension_versions(), live_exts)
+        extension_versions = load_repo_extension_versions(TALOS_INSTALLED_EXTENSIONS)
+        common.print_talos_extension_changes(extension_versions, live_exts)
         return True
     else:
         return False
@@ -98,6 +100,6 @@ def compare_mc_hash(hash_diff: bool, check=False):
     if hash_diff:
         print("Diff between saved machine config hash and live machine config hash")
         print("Maybe there was a machine config change without using the 'iiotctl machine sync' task?")
+        print("Run 'iiotctl machine seal-config' to explicitly overwrite the hash and seal mc")
         if check:
-            print()
-            raise TyperAbort("Run 'iiotctl machine seal-config' to explicitly overwrite the hash and seal mc")
+            raise TyperAbort()

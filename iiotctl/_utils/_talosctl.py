@@ -5,10 +5,13 @@ import sys
 import tempfile
 from pathlib import Path
 from time import sleep
-from typing import Iterable, List
+from typing import Dict, Iterable, List
 
-from ._common import Command, TyperAbort, patch_json, patch_yaml_file, print_if
-from ._constants import JQ_MODULES_DIR, REPO_ROOT
+import yaml
+
+from ._common import (Command, TyperAbort, parse_kwargs_to_cli_args,
+                      patch_json, print_if)
+from ._constants import JQ_MODULES_DIR, K8S_CONFIG_USER, REPO_ROOT
 
 ENCODING = sys.stdout.encoding
 
@@ -18,7 +21,7 @@ def apply_mc(mc: bytes, exit_on_failure=True, print_errors=True, **talos_args):
 
     **talos_args: are passed to the talosctl command
     """
-    additional_args = _create_talos_args(**talos_args)
+    additional_args = parse_kwargs_to_cli_args(**talos_args)
     mode = talos_args["mode"] if "mode" in talos_args else "auto"
     error_msg = f'Can not apply the machine config in {mode} mode.'
     error_msg = error_msg + " (via dry-run)" if "dry_run" in talos_args else error_msg
@@ -55,18 +58,18 @@ def fetch_mc(id, **talos_args) -> bytes:
     """
 
     base_cmd = ["talosctl", "get", "mc", id, "-o", "json"]
-    additional_args = _create_talos_args(**talos_args)
+    additional_args = parse_kwargs_to_cli_args(**talos_args)
     mc_with_meta = Command.check_output(cmd=base_cmd + additional_args, in_bytes=True)
-    fetched_mc = Command.check_output(cmd=["jq", ".spec"], in_bytes=True, input=mc_with_meta)
-    return fetched_mc
+    fetched_mc = json.loads(mc_with_meta)["spec"]
+    return bytes(json.dumps(fetched_mc, indent=2), ENCODING)
 
 
-def get_live_talos_version(**talos_args):
+def get_live_talos_version(**talos_args) -> str:
     """get the talos version from a machine with talosctl
 
     **talos_args: are passed to the talosctl command
     """
-    additional_args = _create_talos_args(**talos_args)
+    additional_args = parse_kwargs_to_cli_args(**talos_args)
     cmd = ["talosctl", "version"] + additional_args
     cmd_result = Command.check_output(cmd, additional_error_msg="Can't get the talos version.", timeout=10.0)
 
@@ -80,9 +83,9 @@ def get_live_talos_version(**talos_args):
     return live_version
 
 
-def get_talos_resource(resource_name, **talos_args):
+def get_talos_resource(resource_name, **talos_args) -> Dict:
     """get a resource from the machine via talosctl in json"""
-    additional_args = _create_talos_args(**talos_args)
+    additional_args = parse_kwargs_to_cli_args(**talos_args)
     cmd = ["talosctl", "get", resource_name, "-o", "json"] + additional_args
     cmd_result = Command.check_output(cmd, additional_error_msg="Can't get the talos resource.")
     return json.loads(cmd_result)
@@ -90,7 +93,7 @@ def get_talos_resource(resource_name, **talos_args):
 
 def _fetch_talos_extension_data(jsonpath: str, **talos_args):
     """fetch talos extension data from live machine via jsonpath"""
-    additional_args = _create_talos_args(**talos_args)
+    additional_args = parse_kwargs_to_cli_args(**talos_args)
     cmd = ["talosctl", "get", "extensions", "-o", "jsonpath=" + jsonpath] + additional_args
     data: str = Command.check_output(cmd)
 
@@ -133,7 +136,7 @@ def generate_mc(cluster_name="CLUSTER_NAME", **talos_args):
 
     Return: machine_config, talosconfig
     """
-    additional_talos_args = _create_talos_args(**talos_args)
+    additional_talos_args = parse_kwargs_to_cli_args(**talos_args)
 
     # tmpdir is required because talosctl gen can't write to stdout
     with tempfile.TemporaryDirectory(prefix="talos-blank-config") as td:
@@ -151,8 +154,8 @@ def generate_mc(cluster_name="CLUSTER_NAME", **talos_args):
         talosconfig_file = tmp_dir / "talosconfig"
         Command.check_output(base_cmd + additional_talos_args, capture_output=False)
 
-        with patch_yaml_file(file_path=controlplane_file) as file:
-            controlplane_mc = file
+        with open(controlplane_file) as file:
+            controlplane_mc = yaml.safe_load(file)
 
         controlplane_mc = bytes(json.dumps(controlplane_mc, indent=2), ENCODING)
 
@@ -180,7 +183,7 @@ def validate_mc(mc: bytes):
         )
 
 
-def patch_mc(mc: bytes, patch_files: Iterable[str], validation=True, verbose=False):
+def patch_mc(mc: bytes, patch_files: Iterable[Path], validation=True, verbose=False):
     """patches mc with all local jq patch files and validates it for each patch"""
     for patch in patch_files:
         print_if(f"   patch: {patch.relative_to(REPO_ROOT)}", verbose)
@@ -189,7 +192,7 @@ def patch_mc(mc: bytes, patch_files: Iterable[str], validation=True, verbose=Fal
         if validation:
             validate_mc(mc)
 
-    return mc
+    return mc.rstrip()
 
 
 def upgrade_k8s(node_name: str, to_version: str, pull_images: bool, verbose: bool, **talos_args):
@@ -211,7 +214,7 @@ def upgrade_k8s(node_name: str, to_version: str, pull_images: bool, verbose: boo
         "--endpoint",
         "localhost",
     ]
-    additional_talos_args = _create_talos_args(**talos_args)
+    additional_talos_args = parse_kwargs_to_cli_args(**talos_args)
     api_server_pod = f"kube-apiserver-{node_name}"
     port_forward_cmd = [
         "kubectl",
@@ -220,21 +223,24 @@ def upgrade_k8s(node_name: str, to_version: str, pull_images: bool, verbose: boo
         "kube-system",
         f"pods/{api_server_pod}",
         "6443:6443",
+        "--kubeconfig",
+        K8S_CONFIG_USER
     ]
     print_if("Start port forwarding for the k8s api ...", verbose)
     # prepare the port forwarding
     port_forward_process = sp.Popen(port_forward_cmd, stdout=sp.DEVNULL, stderr=sp.PIPE)
     sleep(2)
-    if port_forward_process.poll():  # test if the connection is ready
+    if port_forward_process.poll():  # test if the connection has terminated
         raw_error = port_forward_process.stderr.read()
         raise TyperAbort("Can't forward the the api-server to your machine:", raw_error.decode(ENCODING))
     print_if("Start the upgrade process ...", verbose)
 
     # execute the upgrade
-    try:  # upgrade and kill the port forwarding process definitely
+    try:
+        # upgrade and retry forwarding + finally kill the port forwarding process
         upgrade_process = sp.Popen(base_talos_cmd + additional_talos_args)
-        while upgrade_process.poll() is None:
-            if port_forward_process.poll() is not None:
+        while upgrade_process.poll() is None:  # as long as upgrade process not terminated (with or without success)
+            if port_forward_process.poll() is not None:  # if forwarding terminated - restart forwarding process
                 print_if("Retry to port forward the k8s-api ...\n", verbose)
                 port_forward_process = sp.Popen(
                     port_forward_cmd, stdout=sp.DEVNULL, stderr=sp.DEVNULL
@@ -250,17 +256,5 @@ def upgrade_k8s(node_name: str, to_version: str, pull_images: bool, verbose: boo
 def upgrade_talos(**talos_args):
     """upgrade talos via talosctl"""
     base_cmd = ["talosctl", "upgrade"]
-    additional_args = _create_talos_args(**talos_args)
+    additional_args = parse_kwargs_to_cli_args(**talos_args)
     Command.check_output(base_cmd + additional_args)
-
-
-def _create_talos_args(**cmd_kw_args):
-    """create cmd args from a dict
-
-    add '--' to the key and replace '_' with '-'
-    """
-    args = []
-    for arg, value in cmd_kw_args.items():
-        comp_arg = f"--{arg.replace('_', '-')}={value}"
-        args.append(comp_arg)
-    return args

@@ -6,10 +6,11 @@ from rich import print
 
 from .._utils import _check as check
 from .._utils import _common as common
+from .._utils import _kubectl as kubectl
 from .._utils import _teleport as teleport
 from .._utils._common import Command
 from .._utils._config import (BOX_NAME, DEP_KUBECTL, DEP_TALOSCTL, DEP_TCTL,
-                              DEP_TSH)
+                              DEP_TSH, TELEPORT_PROXY_URL)
 from .._utils._constants import K8S_CONFIG_USER, TALOS_CONFIG_PROJECT
 
 ENCODING = sys.stdout.encoding
@@ -30,7 +31,7 @@ def configure_local_talos_access(machine_ip: str, ttl: str, talosconfig: str):
     check.ip(machine_ip)
 
     print("Create a teleport certificate to access the machine's talos api in local network ...")
-    teleport.login()
+    teleport.login(TELEPORT_PROXY_URL)
     cert_b64, key_b64 = _get_teleport_key_cert(ttl)
     Command.check_output(cmd=["tsh", "logout"])
 
@@ -39,8 +40,7 @@ def configure_local_talos_access(machine_ip: str, ttl: str, talosconfig: str):
     # create a new context name for the talosconfig:
     new_context = f"{BOX_NAME}-local-crt"
     # get the root ca from the /machine/talosconfig-teleport file of the project
-    talosconfig: Path = Path(talosconfig)
-    with common.patch_yaml_file(file_path=talosconfig) as config:
+    with common.patch_yaml_file(file_path=TALOS_CONFIG_PROJECT) as config:
         root_ca: str = config["contexts"][BOX_NAME]["ca"]
 
     context_values = {
@@ -61,7 +61,6 @@ def configure_local_talos_access(machine_ip: str, ttl: str, talosconfig: str):
     Command.check_output(cmd=["talosctl", "config", "context", new_context, "--talosconfig", talosconfig])
 
 
-@check.config_parameter("LOCAL_K8S_ACCESS", True)
 @check.dependency(*DEP_KUBECTL)
 @check.dependency(*DEP_TSH)
 @check.dependency(*DEP_TCTL)
@@ -70,29 +69,28 @@ def configure_local_k8s_access(machine_ip: str, ttl: str, kubeconfig: str):
     check.ip(machine_ip)
 
     print("Create a teleport certificate to access the machine's k8s api in local network ...")
-    teleport.login()
+    teleport.login(TELEPORT_PROXY_URL)
     cert_b64, key_b64 = _get_teleport_key_cert(ttl)
     Command.check_output(["tsh", "logout"])
 
     # get the root ca from the /machine/talosconfig-teleport file of the project
-    root_ca = Command.check_output(cmd=["yq", f".contexts.{BOX_NAME}.ca", TALOS_CONFIG_PROJECT])
+    with common.patch_yaml_file(file_path=TALOS_CONFIG_PROJECT) as config:
+        root_ca: str = config["contexts"][BOX_NAME]["ca"]
 
     user = BOX_NAME + "-local-crt"
     print(f"Insert / Update cluster, context, user with name '{user}' in {K8S_CONFIG_USER} ...")
-    kubeconfig = Path(kubeconfig)
-    config = ["kubectl", "config", "--kubeconfig", kubeconfig]
 
     # add local k8s cluster into kubeconfig
-    Command.check_output(config + ["set-cluster", user, "--server", "https://" + machine_ip + ":51011"])
-    Command.check_output(config + ["set", f"clusters.{user}.certificate-authority-data", root_ca])
+    kubectl.config_set_cluster(cluster=user, server="https://" + machine_ip + ":51011", kubeconfig=kubeconfig)
+    kubectl.config_set(key=f"clusters.{user}.certificate-authority-data", value=root_ca, kubeconfig=kubeconfig)
 
     # add local k8s context into kubeconfig
-    Command.check_output(config + ["set-context", user, "--cluster", user, "--user", user])
+    kubectl.config_set_context(context=user, cluster=user, user=user, kubeconfig=kubeconfig)
 
     # add local k8s user into kubeconfig
-    Command.check_output(config + ["set-credentials", user])
-    Command.check_output(config + ["set", f'users.{user}.client-certificate-data', cert_b64.decode()])
-    Command.check_output(config + ["set", f'users.{user}.client-key-data', key_b64.decode()])
+    kubectl.config_set_credentials(credentials=user, kubeconfig=kubeconfig)
+    kubectl.config_set(key=f'users.{user}.client-certificate-data', value=cert_b64.decode(), kubeconfig=kubeconfig)
+    kubectl.config_set(key=f'users.{user}.client-key-data', value=key_b64.decode(), kubeconfig=kubeconfig)
 
     # set kube current-context
-    Command.check_output(config + ["use-context", user])
+    kubectl.config_use_context(context=user, kubeconfig=kubeconfig)

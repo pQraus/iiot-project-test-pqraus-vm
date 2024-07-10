@@ -12,23 +12,17 @@ This manual will show you how to create a new project or how to setup an IIoT-Bo
 
 ## Setup workflows:
 
-### New project:
+### :new: New project:
 
 0. [Prepare the machine](#0-prepare-a-bare-metal-box--virtual-machine)
 1. [Create the repo with iiotctl](#1-create-the-project-local-with-iiotctl-base-init)
-2. [Build machine config with iiotctl](#2-build-machine-config-with-iiotctl-project-setup)
+2. [Setup project repo with iiotctl](#2-setup-project-repo-with-iiotctl-project-setup)
 3. [Apply to Machine](#3-apply-to-machine-with-iiotctl-machine-bootstrap)
 
-in Short:
-1. `iiotctl base init <path-new-project-repo> && cd <path-new-project-repo>`
-2. `iiotctl project setup`
-3. `iiotctl machine bootstrap <ip-of-the-box>`
-
-### Recreating from an existing project:
-1. [Prepare the machine](#0-prepare-a-bare-metal-box--virtual-machine)
-2. [Create machine config from an existing repository](#1b-create-machine-config-from-an-existing-repository)
-3. [Build machine config with iiotctl](#2-build-machine-config-with-iiotctl-project-setup)
-4. [Apply to Machine](#3-apply-to-machine-with-iiotctl-machine-bootstrap)
+### :arrows_counterclockwise: Recreating from an existing project:
+0. [Prepare the machine](#0-prepare-a-bare-metal-box--virtual-machine)
+2. [Create machine config from an existing repository](#create-machine-config-from-an-existing-repository)
+3. [Apply to Machine](#3-apply-to-machine-with-iiotctl-machine-bootstrap)
 
 ## 0. Prepare a bare metal box / virtual machine
 **Requirements:**
@@ -103,7 +97,7 @@ This step copies the base project template from github to a local project direct
     ```
 
 
-## 2. Build machine config with `iiotctl project setup`
+## 2. Setup project repo with `iiotctl project setup`
 With the second step, the project will be initialized.
 
 **Requirements**
@@ -119,7 +113,7 @@ With the second step, the project will be initialized.
     ```
     This task performs the following steps automatically:
     1. Install / update all the necessary tools with specific versions required by the project on your development machine
-    2. Generate all-encompassing deployment manifest for each system-app in its respective /argo directory by typing the following command
+    2. Generate all-encompassing deployment manifest for each system-app in its respective /argo directory
     3. Setup the encryption key for sealed-secrets
     4. Setup access tokens for image registries (only for production) & acquire teleport join token (valid for 3 hours) and add it into the box setup secrets
     5. Setup token for remote-monitoring (if installed)
@@ -153,8 +147,10 @@ Now with the third step, the config will be applied to the machine.
 2. Push the updated `talosconfig-teleport` and the created `config-sealed.asc`, `config.hash` files to github:
     ```bash
     git add . && \
-    git commit -m "feat: update config files" && \
-    git push origin main
+    git commit -m "feat: update config files"
+    ```
+    ```bash
+    git push origin main  # or your current selected branch 
     ```
 
 3. Wait until the new box is ready and connected to teleport.
@@ -183,37 +179,51 @@ Now with the third step, the config will be applied to the machine.
 * Now you can add a user-app in the `user-apps` dir ([add an user app](/user-apps/README.md))
 * For a production machine you should look at the checklist: https://github.com/SchulzSystemtechnik/iiot-base-box/blob/main/docs-base/checklist.md
 
-## 1B. Create machine config from an existing repository
-The next steps are pretty much identical to those from the [create the repo with iiotctl](#2-create-the-repo-with-iiotctl) section. Therefore, only the differences will be described now.
+## Create machine config from an existing repository
+The next steps are pretty much identical to those from the [setup repo with iiotctl](#2-setup-project-repo-with-iiotctl-project-setup) section. Therefore, only the differences will be described now.
+(Another option to setup a machine from an existing repo is to use the sealed config --> call the iiot-box developer)
 
 1. clone the existing project repository to your machine
-2. to update the machine config with the new credentials / settings run a `iiotctl base update` (instead of a creation):
+2. run an `base update` (update to the same git reference as in the [.copier-answers file](/.copier-answers.yml)) to get the missing jq/yaml patch file templates that weren't checked into the project repository and are required to re-render box tokens:
     ```bash
     cd <project-repo> && \
-    iiotctl base update --skip-answered
+    iiotctl base update --skip-answered -r {REFERENCE}
     ```
-3. answer the dialog questions:
-    - most answers should already be correct
-4. follow the additional instructions (see step 3 in [create the repo with iiotctl](#2-create-the-repo-with-iiotctl)) to verify that the disk path and network settings match, too
-5. & 6. Install / update all the necessary tools with specific versions required by the project on your development machine & Generate all-encompassing deployment manifest for each system-app in its respective /argo directory by typing the following command:
+3. verify that the disk path and network settings match, too (see patch modification in [create the project locally](#1-create-the-project-locally-with-iiotctl-base-init))
+4. upgrade the project.
     ```bash
     iiotctl project upgrade
     ```
-7. Setup the encryption key for sealed-secrets (if not yet existent):
+    This task performs the following steps automatically:
+    1. Install / update all the necessary tools with specific versions required by the project on your development machine
+    2. Generate all-encompassing deployment manifest for each system-app in its respective /argo directory
+    3. Create (if missing) / update project [README.md](/README.md) base- / talos- / k8s versions static badges
+5. Setup the encryption key for sealed-secrets (all sealed secrets must be encrypted again):
     ```bash
-    iiotctl project seal-secret --init
+    iiotctl project seal-secret --bootstrap
     ```
+6. :warning: Check the network config. When you have a new hardware or VM the MAC addresses have changed.
+7. :warning: Create and add a new deploy key for Github in:
+    - [github-credentials.yaml](/system-apps/cluster-administration/machine-patches/initial-secrets/github-credentials.yaml)
+    - [_initial-git-credential-manifest.boot.jq](/system-apps/cluster-administration/machine-patches/_initial-git-credential-manifest.boot.jq)
 8. Setup not yet configured access tokens for image registries via the **box token provider**:
-    - e.g. if schulz-registry access not yet configured:
-    ```bash
-    iiotctl project create-token --schulz-registry
-    ```
-    - e.g. if dockerhub access not yet configured:
-    ```bash
-    iiotctl project create-token --docker
-    ```
-    - add `--grafana` if you enabled remote monitoring during `iiotctl base update`
-9. now follow steps 8-13 of [build machine configuration with iiotctl tasks](#3-build-machine-configuration-with-iiotctl-tasks))
+    - e.g. teleport join token (change time valid with option `--ttl` | default: 3h):
+        ```bash
+        iiotctl project create-token --teleport
+        ```
+    - e.g. if dockerhub access not yet configured in [docker-access.jq](machine/config/registry-credentials/docker-access.jq):
+        ```bash
+        iiotctl project create-token --docker
+        ```
+    - e.g. if schulz-registry access not yet configured in [schulz-registry-access.jq](machine/config/registry-credentials/schulz-registry-access.jq):
+        ```bash
+        iiotctl project create-token --schulz-registry
+        ```
+    - (optional) if remote monitoring is wanted, enabled and not yet configured in [secret.yaml](/system-apps/monitoring/argo/remote/victoria-metrics-agent/plain-secret/secret.yaml)
+        ```bash
+        iiotctl project create-token --grafana
+        ```
+9.  now apply repository to machine, following: [Apply to Machine](#3-apply-to-machine-with-iiotctl-machine-bootstrap)
 
 
 ## Nice to know

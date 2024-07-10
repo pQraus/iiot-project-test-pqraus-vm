@@ -9,7 +9,8 @@ from .._utils import _check as check
 from .._utils import _common as common
 from .._utils import _talosctl as talosctl
 from .._utils._common import TyperAbort, print_if
-from .._utils._config import BOX_NAME, DEP_GPG, DEP_JQ, DEP_TALOSCTL
+from .._utils._config import (BOX_NAME, DEP_GPG, DEP_JQ, DEP_TALOSCTL,
+                              TALOS_INSTALLED_EXTENSIONS)
 from .._utils._constants import (PATCH_LOCATIONS, REPO_ROOT,
                                  TALOS_CONFIG_PROJECT)
 from .._utils._installer_spec_config import load_repo_installer_image_ref
@@ -48,8 +49,8 @@ def bootstrap(
     check.ip(machine_ip)
     patch_files = common.glob_files(REPO_ROOT, *PATCH_LOCATIONS)
 
-    installer_image = load_repo_installer_image_ref()
-    print_if(f"Used talos installer image: {installer_image}", verbose)
+    installer_image = load_repo_installer_image_ref(required_extensions=TALOS_INSTALLED_EXTENSIONS)
+    print_if(f"Using talos installer image: {installer_image}", verbose)
 
     initial_mc, talosconfig = talosctl.generate_mc(
         BOX_NAME, install_image=installer_image

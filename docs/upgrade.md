@@ -142,9 +142,13 @@ The following steps will depend on what the previous step has changed.
 ---
 
 ## Upgrade v1 to v2
-Supported upgrade path: **v1.x.x -->  v1.2.3 --> v2.2.0**
+Supported upgrade path: **v1.x.x -->  v1.2.3 --> v2.3.0**
 
 When you upgrade a project to v2.x.x follow these steps:
+
+Requirements:
+
+* :warning: Check the Network Whitelisting in the customers firewall. https://schulz.atlassian.net/wiki/spaces/SCHU/pages/2459861010/Systemanforderungen+IIoT-Box#Netzwerkfreigabeliste-ab-Version-2.0
 
 1. create a new update branch
     ```
@@ -159,6 +163,7 @@ When you upgrade a project to v2.x.x follow these steps:
     ```bash
     copier --vcs-ref v1.2.3 update
     ```
+    When this error occurs when making the update `ModuleNotFoundError: No module named 'yamlinclude'`, than an additional package must be included to the pipx copier-dist env. Execute this command: `pipx inject copier-dist 'pyyaml-include<2'`
 3. commit the changes, it isn't required to upload the changes to the box
 4. The upgrade includes a Talos upgrade to v1.5.4, too. These upgrade can affect the network interface assignments. Therefore it is necessary to add the `deviceSelector` to your configured network interfaces. Make sure that you remove or commend the interface key, both are not vaild.
 
@@ -178,11 +183,11 @@ When you upgrade a project to v2.x.x follow these steps:
 
 5. upgrade the `copier-dist` to the current version:
     ```bash
-    pipx install --force git+https://github.com/SchulzSystemtechnik/iiot-misc-copier-dist.git@v2
+    pipx install --force git+https://github.com/SchulzSystemtechnik/iiot-misc-copier-dist.git@9.2.0
     ```
 6. update the project-repo to v2.x.x
     ```bash
-    iiotctl base update
+    copier update --trust
     ```
     the most answers should be valid
 7. commit the changes (in the update branch)
@@ -232,6 +237,8 @@ When you upgrade a project to v2.x.x follow these steps:
     ```bash
     iiotctl machine sync
     ```
-18. (commit changes), push branch to github, merge it into main and look at the argo ui.
+18. (commit changes), push branch to github and merge the update branch into main
+19. connect to the argo ui (`iiotctl connect argo`)
+    - refresh all apps
     - remove the old teleport app
-    - sync the apps when they are degraded
+    - sync the apps when they are degraded (maybe there are also resources that need to be deleted)
