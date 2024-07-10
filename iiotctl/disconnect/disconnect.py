@@ -26,6 +26,6 @@ def teleport():
 @app.command()
 def all():
     """unset all contexts; log out from teleport server"""
-    talos()
-    k8s()
-    teleport()
+    _disconnect.unset_talos_context()
+    _disconnect.unset_k8s_context()
+    _disconnect.teleport_logout()

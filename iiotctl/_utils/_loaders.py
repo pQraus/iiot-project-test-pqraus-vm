@@ -19,22 +19,28 @@ def load_configuration(config_file: Path):
 
 def load_asdf_plugins(asdf_file: Path):
     with open(asdf_file, "r") as rd:
-        plugins = rd.read().split("\n")[1:-1]
+        plugins = rd.read().rstrip().lstrip()
+        plugins = [line for line in plugins.splitlines() if not line.startswith("#")]
 
     asdf_plugins = {}
 
-    for p in plugins:
-        tmp = p.split("#")
-        src = tmp[1].split(" ")[-1]
-        tool, vers = tmp[0].rstrip().split(" ")
-        asdf_plugins.update({tool: {"version": vers, "source": src}})
-    
+    try:
+        if not plugins:
+            raise
+        for p in plugins:
+            tmp = p.split("#")
+            src = tmp[1].split(" ")[-1]
+            tool, vers = tmp[0].rstrip().split(" ")
+            asdf_plugins.update({tool: {"version": vers, "source": src}})
+    except Exception as exc:
+        raise TyperAbort(exc, "Unable to parse asdf tool version data from file:", str(asdf_file))
     return asdf_plugins
 
 
 def get_config_entry(config: dict, entry_name: str):
     try:
         value = config[entry_name]
-    except KeyError:
-        raise TyperAbort(f"Can't get the '{entry_name}' entry from the given dictionary")
+    except Exception:
+        raise TyperAbort(f"Can't get the entry '{entry_name}' from the given dictionary:", config)
+
     return value

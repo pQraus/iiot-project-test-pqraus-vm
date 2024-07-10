@@ -12,7 +12,8 @@ from .._utils import _check as check
 from .._utils import _common as common
 from .._utils import _teleport
 from .._utils._common import Command, TyperAbort, print_error
-from .._utils._config import BOX_NAME, CONTAINER_REGISTRIES, DEP_TCTL, DEP_TSH
+from .._utils._config import (BOX_NAME, CONTAINER_REGISTRIES, DEP_TCTL,
+                              DEP_TSH, TELEPORT_ENABLED, TELEPORT_PROXY_URL)
 from .._utils._constants import REPO_ROOT
 from ._seal_secret import _check_if_sealing_possible, _seal_secret
 
@@ -254,7 +255,15 @@ def _create_teleport_token(expiration_time: str):
     print("Successfully configured box teleport access manifests.")
 
 
-@check.config_parameter("TELEPORT_ENABLED", True)
+def _is_connected_to_correct_teleport_cluster():
+    tsh_status = Command.check_output(["tsh", "status", "-f", "json"], ignore_error=True)
+    if tsh_status:
+        connected_cluster_url: str = json.loads(tsh_status)["active"]["profile_url"]
+        return connected_cluster_url.removeprefix("https://") == TELEPORT_PROXY_URL
+    else:
+        return False
+
+
 @check.dependency(*DEP_TSH)
 @check.dependency(*DEP_TCTL)
 def create_token(
@@ -266,6 +275,9 @@ def create_token(
     dev: bool
 ):
 
+    if TELEPORT_ENABLED is False:
+        raise TyperAbort("Teleport must be enabled.")
+
     selected_provider = []
     selected_provider += ([Provider.GRAFANA] if grafana else [])
     selected_provider += ([Provider.DOCKER] if docker else [])
@@ -276,8 +288,9 @@ def create_token(
         return
 
     if not dev or teleport:
-        Command.check_output(["tsh", "logout"])
-        _teleport.login()
+        if not _is_connected_to_correct_teleport_cluster():
+            Command.check_output(["tsh", "logout"])
+            _teleport.login(TELEPORT_PROXY_URL)
 
         if teleport:
             _create_teleport_token(ttl)

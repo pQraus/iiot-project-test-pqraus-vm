@@ -14,12 +14,24 @@ from rich.table import Table
 ENCODING = sys.stdout.encoding
 
 
+def parse_kwargs_to_cli_args(**cmd_kw_args) -> List[str]:
+    """create cmd args from a dict
+
+    add '--' to the key and replace '_' with '-'
+    """
+    args = []
+    for arg, value in cmd_kw_args.items():
+        comp_arg = f"--{arg.replace('_', '-')}={value}"
+        args.append(comp_arg)
+    return args
+
+
 def print_error(*msgs: Iterable[str], **kwargs: Dict):
     """print message colored red, prefixed with: '[ERROR]:' ..."""
     for msg in msgs:
         if msg is None or not str(msg):
             continue
-        print(f"[bold red][ERROR]: {msg}[/]", file=sys.stderr, **kwargs)
+        typer.secho(f"[ERROR]: {msg}", bold=True, fg="red", file=sys.stderr, **kwargs)
 
 
 class TyperAbort(typer.Abort):
@@ -35,8 +47,8 @@ class Command:
 
     @staticmethod
     def check_output(
-        cmd: List[str], in_bytes=False, ignore_error=False, additional_error_msg="", capture_output=True, **args
-    ) -> str | bytes:
+        cmd: Iterable[str], in_bytes=False, ignore_error=False, additional_error_msg="", capture_output=True, **args
+    ) -> str | bytes | None:
         """execute given subprocess command; return resulting stdout; raise error by default"""
         result: sp.CompletedProcess = sp.run(cmd, text=not in_bytes, capture_output=capture_output, **args)
 
@@ -49,14 +61,13 @@ class Command:
         return result.stdout
 
     @staticmethod
-    def check(cmd: List[str], in_bytes=False, ignore_error_msg=True, additional_error_msg="", **args) -> bool:
+    def check(cmd: Iterable[str], in_bytes=False, ignore_error_msg=True, additional_error_msg="", **args) -> bool:
         """execute given subprocess command; return bool if successful or not; don't raise error by default"""
         result: sp.CompletedProcess = sp.run(cmd, text=not in_bytes, capture_output=True, **args)
 
         if result.returncode and not ignore_error_msg:
             error = result.stderr.decode() if isinstance(result.stderr, bytes) else result.stderr
-            print_error(error)
-            print_error(additional_error_msg)
+            print_error(error, additional_error_msg)
         elif result.returncode and additional_error_msg:
             print_error(additional_error_msg)
 
@@ -147,14 +158,19 @@ def patch_yaml_file(file_path: Path = None):
         file["stringData"]["data2"] = "new_data2"
     ```
     """
-
     file_path: Path = Path(file_path)
     if not file_path.exists():
         raise TyperAbort(f"Unable to yq patch file at '{file_path}'! Doesn't exist.")
 
     with open(file_path, "r+") as file:
-        content_dict = yaml.safe_load(file.read())
+        content_dict: Dict = yaml.safe_load(file.read())
+        if content_dict is None:
+            content_dict = {}
+        if not isinstance(content_dict, Dict):
+            raise TyperAbort(f"Content of file: '{file_path}' is not in valid yaml format.")
+
         yield content_dict
+
         file.seek(0)
         file.write(yaml.safe_dump(content_dict, indent=2, sort_keys=False, width=math.inf))
         file.truncate()

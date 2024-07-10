@@ -5,7 +5,7 @@ from rich import print
 
 from .._utils import _check as check
 from .._utils import _common as common
-from .._utils._common import Command
+from .._utils import _kubectl as kubectl
 from .._utils._config import DEP_HELM, DEP_KUBECTL
 from .._utils._constants import REPO_ROOT
 
@@ -34,13 +34,6 @@ def render_argo_manifests(apps: List[str]):
             (path.parent / "argo").mkdir(exist_ok=True)
 
         # kustomize selection of argo-templates and transfer output into /argo/APP_NAME.yaml files
-        Command.check_output(
-            [
-                "kubectl",
-                "kustomize",
-                "--enable-helm",
-                absolute_path,
-                "-o",
-                absolute_path.replace("/argo-template", manifest)
-            ]
+        kubectl.kustomize(
+            from_file=absolute_path, to_file=absolute_path.replace("/argo-template", manifest), enable_helm=True
         )

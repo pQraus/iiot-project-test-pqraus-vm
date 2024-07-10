@@ -10,7 +10,8 @@ from .._utils import _check as check
 from .._utils import _common as common
 from .._utils import _talosctl as talosctl
 from .._utils._common import Command, TyperAbort
-from .._utils._config import BOX_NAME, DEP_GPG, DEP_JQ, DEP_TALOSCTL
+from .._utils._config import (BOX_NAME, DEP_GPG, DEP_JQ, DEP_TALOSCTL,
+                              TALOS_INSTALLED_EXTENSIONS)
 from .._utils._constants import (EXCLUDE_SYNC_PATCHES, JQ_MODULES_DIR,
                                  MACHINE_DIR, PATCH_LOCATIONS, REPO_ROOT,
                                  TALOS_CONFIG_PROJECT)
@@ -107,7 +108,8 @@ def patch_config(
     patch_files = common.glob_files(REPO_ROOT, *patch_file_pattern) if patch_file_pattern else []
 
     if generate:
-        mc, _ = talosctl.generate_mc(BOX_NAME, install_image=load_repo_installer_image_ref())
+        image_ref = load_repo_installer_image_ref(required_extensions=TALOS_INSTALLED_EXTENSIONS)
+        mc, _ = talosctl.generate_mc(BOX_NAME, install_image=image_ref)
         if not patch_file_pattern:
             patch_files = common.glob_files(REPO_ROOT, *PATCH_LOCATIONS)
     elif fetch:

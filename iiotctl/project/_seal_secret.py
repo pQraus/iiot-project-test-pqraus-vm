@@ -8,8 +8,9 @@ from rich import print
 
 from .._utils import _check as check
 from .._utils import _common as common
+from .._utils import _kubectl as kubectl
 from .._utils._common import Command, TyperAbort, print_error
-from .._utils._config import DEP_KUBECTL, DEP_KUBESEAL
+from .._utils._config import BOX_NAME, DEP_KUBECTL, DEP_KUBESEAL
 from .._utils._constants import K8S_CONFIG_USER, REPO_ROOT
 
 APP_DIR = REPO_ROOT / "system-apps/sealed-secrets"
@@ -97,16 +98,8 @@ def _create_secret(bootstrap: bool = False) -> str:
 
 
 def _gen_secret_name() -> str:
-    current_names = Command.check_output(
-        cmd=[
-            "kubectl",
-            "-n",
-            "sealed-secrets",
-            "get",
-            "secrets",
-            "-o",
-            "jsonpath='{.items[*].metadata.name}'"
-        ]
+    current_names = kubectl.fetch(
+        resource="secrets", format="jsonpath='{.items[*].metadata.name}'", kubeconfig=K8S_CONFIG_USER
     )
 
     name = "repo-key-" + str(uuid4())[:8]
@@ -117,24 +110,14 @@ def _gen_secret_name() -> str:
 
 
 def _push_new_key_to_k8s():
-    check.k8s_connection(K8S_CONFIG_USER)
+    check.k8s_connection(BOX_NAME, K8S_CONFIG_USER)
 
     secret = _create_secret()
     with open(MACHINE_PATCH_SEALED_SECRET_KEY, "w") as file:
         file.write(secret)
 
-    Command.check_output(cmd=["kubectl", "apply", f"-f={MACHINE_PATCH_SEALED_SECRET_KEY}"])
-    Command.check_output(
-        cmd=[
-            "kubectl",
-            "-n",
-            "sealed-secrets",
-            "rollout",
-            "restart",
-            "deployment",
-            "sealed-secrets-controller"
-        ]
-    )
+    kubectl.apply(file=MACHINE_PATCH_SEALED_SECRET_KEY)
+    kubectl.rollout_restart_deployment(deployment="sealed-secrets-controller", namespace="sealed-secrets")
 
     print("Successfully pushed encryption key to cluster")
 

@@ -46,7 +46,7 @@ For this step you will create a short-lived teleport certificate via the telepor
 1. find out the IP address of the box (via router, documentation ...)
 2. create the certificates / talosconfig via teleport-server **(this step requires an internet connection)**; it adds a new talosconfig entry into the `~/.talos/config` file
     ```bash
-    iiotctl connect talos --local-ip <BOX-IP> --ttl 5h
+    iiotctl connect talos --machine-ip <BOX-IP> --ttl 5h
     ```
     - replace `<BOX-IP>` with the real IP address of the box
 

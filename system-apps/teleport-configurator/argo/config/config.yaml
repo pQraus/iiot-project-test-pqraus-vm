@@ -32,7 +32,7 @@ app_service:
         usage: iiot
         env: dev
         kind: talos
-        base-repo-version: v2.2.0-68-g393826e
+        base-repo-version: v2.3.1-47-g070f14c
         repo-url: https://github.com/pQraus/iiot-project-test-pqraus-vm
         local-monitoring: False
         remote-monitoring: False
