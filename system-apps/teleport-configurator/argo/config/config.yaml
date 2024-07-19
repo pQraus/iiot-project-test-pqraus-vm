@@ -27,12 +27,15 @@ app_service:
       commands:
         - name: teleport-version
           command: ["/teleport-agent/bin/teleport", "version", "--raw"]
-          period: 1h0m0s
+          period: 0h10m0s
+        - name: teleport-sync-status
+          command: ["/bin/busybox", "cat", "/teleport-agent/sync-status"]
+          period: 0h10m0s
       labels:
         usage: iiot
         env: dev
         kind: talos
-        base-repo-version: v2.3.1-47-g070f14c
+        base-repo-version: v2.3.1-69-g12d591b
         repo-url: https://github.com/pQraus/iiot-project-test-pqraus-vm
         local-monitoring: False
         remote-monitoring: False

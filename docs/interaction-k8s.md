@@ -24,9 +24,10 @@ This file explains some workflows on how to interact with Kubernetes on an IIoT-
 There are serval ways to access kubernetes (remote or local) as shown in the picture. 
 
 Choose one method:
-- **recommended** [remote access via teleport](#remote-access-via-teleport)
-- [local access](#local-access)
-- [remote access via VPN-Router](#remote-access-via-vpn-router) (fallback method)
+- **recommended** [Remote access via teleport](#remote-access-via-teleport)
+- [Remote access via VPN-Router](#remote-access-via-vpn-router) (fallback method)
+- [Local access via auth-proxy](#local-access-via-auth-proxy)
+- [Local access via talosctl](#local-access-via-talosctl) (fallback method)
 
 
 To handle Kubernetes contexts:
@@ -44,7 +45,32 @@ kubectl config use-context <context-name>
     This command uses teleport to login to the k8s cluster and sets the global k8s context.
 3. run some `kubectl` commands
 
-### Local access
+### Remote access via VPN-Router
+1. connect to the VPN-Router
+2. follow the steps from [local access via auth-proxy](#local-access-via-auth-proxy)
+    - fallback: [Local access via talosctl](#local-access-via-talosctl)
+
+### Local access via auth-proxy
+For this step you will create a short-lived teleport certificate via the teleport server. This certificate is used to authenticate against k8s (via the auth-proxy). **For the creation of this certificate you need (internet) access to the teleport server.** The created certificate is stored in a k8s-context on your local pc. Therefore, it is possible to access the box in a local network while your pc and / or the IIoT-box isn't connected to the public internet / teleport.
+
+1. find out the IP address of the box (via router, documentation ...)
+2. create the certificates / kubeconfig via teleport-server **(this step requires an internet connection)**; it adds a new kubeconfig entry into the `~/.kube/config` file
+    ```bash
+    iiotctl connect k8s --machine-ip <BOX-IP> --ttl 5h
+    ```
+    - replace `<BOX-IP>` with the real IP address of the box
+
+    It's also possible that you perform these step before you can research which IP the box has, e.g. when there is no internet connection on the local network. In this case you can fake the IP address when you execute the iiotctl task. When you know the real address you can update the created config (`~/.kube/config`).
+3. now you can run your `kubectl` commands and interact with the kubernetes API of the IIoT-box
+4. If you, later on, after you connected to other boxes, want to reconnect to the first box via the local cert you to do the following:
+- check if the cert is still valid (you can configure the lifetime via `--ttl` on creation)
+- set the current kubernetes context to the one that uses the local cert with:
+    ```bash
+    kubectl config use-context <CONTEXT>
+    ```
+    - replace `<CONTEXT>` with the real kubernetes context name
+
+### Local access via talosctl
 **Requirements:**
 - connection to the talos api (look at [interaction with talos](/docs/interaction-talos.md))
 
@@ -82,10 +108,6 @@ kubectl config use-context <context-name>
     kubectl config use-context admin@MACHINE-NAME
     ```
 4. run some `kubectl` commands
-
-### Remote access via VPN-Router
-1. connect to the VPN-Router
-2. follow tht steps from [local access to Kubernetes](#local-access)
 ---
 
 ## Connect to ArgoCD

@@ -2,9 +2,9 @@ namespace: kube-system
 images:
   - name: gcr.io/k8s-staging-metrics-server/metrics-server
     newName: registry.k8s.io/metrics-server/metrics-server
-    newTag: v0.7.0
+    newTag: v0.7.1
 resources:
-  - https://github.com/kubernetes-sigs/metrics-server/manifests/base?ref=v0.7.0&submodules=false&timeout=120s
+  - https://github.com/kubernetes-sigs/metrics-server/manifests/base?ref=v0.7.1&submodules=false&timeout=120s
 
 # add argument --kubelet-insecure-tls via patch to container args (patches docs: https://kubectl.docs.kubernetes.io/references/kustomize/kustomization/patches/)
 patches:

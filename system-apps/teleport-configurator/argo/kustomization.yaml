@@ -4,15 +4,14 @@ configMapGenerator:
   - name: teleport-config
     files:
       - config/config.yaml
-    literals:
-      - teleportVersion=14.3.20-1.3      # only needed to trigger an argo sync of the teleport config app
     options:
       disableNameSuffixHash: true
 
 images:
   - name: schulzsystemtechnik/iiot-misc-teleport-configurator
-    newTag: 14.3.20-1.3
+    newTag: stable
 
 resources:
-  - resources/configurator-job.yaml
+  - resources/configurator-cronjob.yaml
   - resources/configurator-namespace.yaml
+  - resources/configurator-post-sync-job.yaml

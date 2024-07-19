@@ -11,13 +11,18 @@ def config_content:
     timeout client 1h
     timeout server 1h
 frontend insecure_talos_api
-    bind :51002 interface lo ssl crt /extension-data/secrets/talos/server/server.pem
+    bind 127.0.0.1:51002 interface lo ssl crt /extension-data/secrets/talos/server/server.pem
     default_backend talos_api
 frontend secure_talos_api
     bind :51001 ssl crt /extension-data/secrets/talos/server/server.pem ca-file /extension-data/auth-proxy/teleport_ca.pem verify required
     default_backend talos_api
+frontend secure_k8s_api
+    bind :51011 ssl crt /extension-data/secrets/talos/server/server.pem ca-file /extension-data/auth-proxy/teleport_ca.pem verify required
+    default_backend k8s_api
 backend talos_api
     server talos_api :50000 ssl crt /extension-data/secrets/talos/admin/client.pem ca-file /extension-data/secrets/talos/ca/ca.crt
+backend k8s_api
+    server k8s_api :6443 ssl crt /extension-data/secrets/kubernetes/admin/client.pem ca-file /extension-data/secrets/kubernetes/ca/ca.crt 
 ";
 
 def auth_proxy_config_file:

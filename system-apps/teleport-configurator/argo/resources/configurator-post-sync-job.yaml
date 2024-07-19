@@ -1,13 +1,14 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: teleport-configurator
+  name: teleport-configurator-startup
   annotations:
     argocd.argoproj.io/hook: PostSync
 spec:
-  backoffLimit: 3
+  backoffLimit: 1   # just one restart when the pod fails
   template:
     spec:
+      restartPolicy: Never
       volumes:
         - name: binaries
           hostPath:
@@ -47,4 +48,3 @@ spec:
               mountPath: /teleport-agent-live
             - name: shipped-config
               mountPath: /teleport-agent-shipped/config
-      restartPolicy: Never
