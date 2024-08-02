@@ -32,6 +32,7 @@ This guide shows how to upgrade a project to the current base.
 2. [Apply to Machine`](#2-apply-the-upgrade-to-the-box-with-iiotctl-machine-sync)
 
 **Special:**
+* [Upgrade v2 to v3](#upgrade-v2-to-v3)
 * [Upgrade v1 to v2](#upgrade-v1-to-v2-1)
 
 
@@ -42,10 +43,15 @@ Updating the files (machine config patches, k8s-manifests) within the project re
 - For the next steps ensure that you are in the project repo
     ```bash
     cd <path-new-project-repo>
-    ``````
+    ```
+- check the machine status, only update when everything is ok :white_check_mark:
+    ```bash
+    iiotctl machine status
+    ```
+- no git changes in your local repository (commit or stash them)
 
 **Steps**
-1. Upgrade  with iiotctl:
+1. Upgrade project with iiotctl:
     ```bash
     iiotctl base update --skip-answered
     ```
@@ -55,36 +61,48 @@ Updating the files (machine config patches, k8s-manifests) within the project re
     ```bash
     git diff --name-status --diff-filter=U
     ```
-    * When the command prints nothing: -> continue with next step
-    * When the command prints some files: -> try to resolve the conflicts
+    * when the command prints nothing: -> continue with next step
+    * when the command prints some files: -> try to resolve the conflicts
 3. Upgrade local project repo directory files:
     ```bash
     iiotctl project upgrade
     ```
-4. Seal the machine config for the first time:
+    * The kube manifests will be rendered
+    * This will create a new branch and the changes will be committed to it
+    **Don't merge the branch directly into main.**
+4. On every upgrade you should run the status task
+    ```bash
+    iiotctl connect talos
+    ```
+    ```bash
+    iiotctl machine status
+    ```
+    * when the machine config hash is :x: :
+      * look at the next step
+    * when anything else is :x: :
+      * look at 2. [Apply new config`](#2-apply-the-upgrade-to-the-box-with-iiotctl-machine-sync)
+5. Seal the machine config (the reason for the (re-) sealing is that the tasks have changed)
     ```bash
     iiotctl connect talos
     ```
     ```bash
     iiotctl machine seal-config
     ```
-5. Commit the changes in a **new branch**
     ```bash
-    git switch -c feature/update-base && \
-    git add . && \
-    git commit -m "feat: update project base to $(yq '._commit' .copier-answers.yml)" && \
-    git push origin feature/update-base
+    git add machine/ && \
+    git commit -m "feat: seal the machine config"
     ```
-    **Don't merge the branch directly into main.**
-6. On every upgrade you should run the status task
+6. Push the update branch
     ```bash
-    iiotctl machine status
+    git push origin update/base-$(yq '._commit' .copier-answers.yml)
     ```
-    * When everything is :white_check_mark: :
-      * Merge the branch `feature/update-base` on Github. **The new system apps will be upgraded immediately by ArgoCD!**
-      * Delete the branch local and remote after merge.
-    * When anything is :x: :
-      * ...
+7. When everything is fine (machine status) merge the update branch into main on Github
+* **The new system apps will be upgraded immediately by ArgoCD!**
+* Delete the branch local and remote after merge.
+8. Connect to argo and check the apps
+    ```bash
+    iioctl connect argo
+    ```
 
 ## 2. Apply the upgrade to the box with `iiotctl machine sync`
 The following steps will depend on what the previous step has changed.
@@ -128,10 +146,10 @@ The following steps will depend on what the previous step has changed.
     ```bash
     iiotctl machine status
     ```
-    * When everything is :white_check_mark: :
+    * when everything is :white_check_mark: :
       * Merge the branch `feature/update-base` on Github. **The new system apps will be upgraded immediately by ArgoCD!**
       * Delete the branch local and remote after merge.
-    * When anything is :x: :
+    * when anything is :x: :
       * -> Call the Experts :phone:.
 
     **Experts only:**
@@ -140,6 +158,75 @@ The following steps will depend on what the previous step has changed.
 4. When everything has been synced and upgraded by ArgoCD, you should check the applications to see if everything is working properly. (Maybe delete old resources in ArgoCD
 
 ---
+
+## Upgrade v2 to v3
+Supported upgrade path: **v2.x.x --> v3.0.0**
+
+**Requirements**
+- For the next steps ensure that you are in the project repo
+    ```bash
+    cd <path-new-project-repo>
+    ```
+- check the machine status, only update when everything is ok :white_check_mark:
+    ```bash
+    iiotctl machine status
+    ```
+- no git changes in your local repository (commit or stash them)
+
+**Steps:**
+1. Update project:
+    ```bash
+    iiotctl base update --skip-answered --vcs-ref v3.0.0
+    ```
+2. Upgrade project files / tools
+    ```bash
+    iiotctl project upgrade
+    ```
+3. Apply the machine config in staged mode and ignore the version change
+    ```bash
+    iiotctl machine sync --force --apply-mode staged
+    ```
+4. Execute the **Talos upgrade** (Causes Downtime :rotating_light:)
+    ```bash
+    iiotctl machine upgrade-talos
+    ```
+    ```bash
+    talosctl dashboard
+    ```
+    - after upgrading the dashboard should show that the `STAGE` is `Running` and `READY` is `True` (it takes ~10 min)
+    - when machine doesn't change in ready state -> Call the Experts :phone:  
+5. Execute the **Kubernetes upgrade** (Causes Downtime :rotating_light:)
+    ```bash
+    iiotctl machine upgrade-k8s
+    ```
+    ```bash
+    talosctl dashboard
+    ```
+    - after upgrading the dashboard should show that the `STAGE` is `Running` and `READY` is `True` (it takes ~10 min)
+    - when machine doesn't change in ready state -> Call the Experts :phone:  
+6. check machine status
+    ```bash
+    iiotctl machine status
+    ```
+    * when everything is :white_check_mark: :
+      * continue
+    * when anything is :x: :
+      * -> Call the Experts :phone:.
+7. commit changes (only sealed machine config should be changed)
+    ```bash
+    git add machine/ && \
+    git commit -m "feat: seal the machine config"
+    ```
+8. Push the update branch
+    ```bash
+    git push origin update/base-$(yq '._commit' .copier-answers.yml)
+    ```
+9. merge the update branch into main
+10. refresh all argo applications (in the argocd ui)
+    ```
+    iiotctl connect argo
+    ```
+11. upgrade finished
 
 ## Upgrade v1 to v2
 Supported upgrade path: **v1.x.x -->  v1.2.3 --> v2.3.0**

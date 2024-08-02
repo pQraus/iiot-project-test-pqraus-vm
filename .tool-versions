@@ -1,6 +1,6 @@
 # asdf required tools !!! Changes here will be overwritten by Copier; DO NOT EDIT MANUALLY
 gh 2.51.0                   # asdf plugin-add github-cli https://github.com/bartlomiejdanek/asdf-github-cli.git
-jq 1.7.1                    # asdf plugin-add jq https://github.com/AZMCode/asdf-jq.git
+jq 1.6                      # asdf plugin-add jq https://github.com/AZMCode/asdf-jq.git
 yq 4.44.2                   # asdf plugin-add yq https://github.com/sudermanjr/asdf-yq.git
 kubectl 1.29.3              # asdf plugin-add kubectl https://github.com/asdf-community/asdf-kubectl.git
 teleport-community 14.3.20  # asdf plugin-add teleport-community https://github.com/MaloPolese/asdf-teleport-community.git

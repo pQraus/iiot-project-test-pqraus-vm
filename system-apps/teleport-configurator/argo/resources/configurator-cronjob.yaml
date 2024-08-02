@@ -4,6 +4,7 @@ metadata:
   name: teleport-configurator
 spec:
   schedule: "0 10 * * 1-5"
+  timeZone: Europe/Berlin
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
   jobTemplate:
