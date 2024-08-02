@@ -31,6 +31,9 @@ app_service:
         - name: teleport-sync-status
           command: ["/bin/busybox", "cat", "/teleport-agent/sync-status"]
           period: 0h10m0s
+        - name: test
+          command: ["/bin/busybox", "echo", "$FOO"]
+          period: 0h10m0s
       labels:
         usage: iiot
         env: dev
