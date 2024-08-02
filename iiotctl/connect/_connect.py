@@ -46,6 +46,7 @@ def connect_talos(local_port: int, machine_ip: str | None, ttl: str, talosconfig
             contexts.pop(BOX_NAME, None)
     # 2. add the context from the repo into the config
     Command.check_output(cmd=["talosctl", "config", "merge", TALOS_CONFIG_PROJECT])
+    Command.check_output(cmd=["talosctl", "config", "endpoint", f"127.0.0.1:{local_port}"])
     print(f"Set global talos context to: {BOX_NAME}")
     print()
 
