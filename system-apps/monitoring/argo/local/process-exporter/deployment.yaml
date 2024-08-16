@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: process-exporter
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: process-exporter
+  template:
+    metadata:
+      labels:
+        app: process-exporter
+    spec:
+      containers:
+        - name: process-exporter
+          image: schulzsystemtechnik/iiot-app-process-exporter:1.0.0
+          resources:
+            limits:
+              memory: 40Mi
+              cpu: 20m
+            requests:
+              memory: 15Mi
+              cpu: 10m
+          securityContext:
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: proc
+              mountPath: /proc
+              readOnly: true
+      volumes:
+        - name: proc
+          hostPath:
+            path: /proc

@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aggregated-metric-exporter
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: aggregated-metric-exporter
+  template:
+    metadata:
+      labels:
+        app: aggregated-metric-exporter
+    spec:
+      containers:
+        - name: aggregated-metric-exporter
+          image: schulzsystemtechnik/iiot-app-aggregated-metric-exporter:2.0.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - -config=/config/config.yaml
+          resources:
+            limits:
+              memory: 40Mi
+              cpu: 30m
+            requests:
+              memory: 20Mi
+              cpu: 15m
+          ports:
+            - containerPort: 9200
+          volumeMounts:
+            - name: config
+              mountPath: /config
+      volumes:
+        - name: config
+          configMap:
+            name: aggregated-metric-exporter

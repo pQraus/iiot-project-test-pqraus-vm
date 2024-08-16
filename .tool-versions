@@ -1,9 +1,9 @@
 # asdf required tools !!! Changes here will be overwritten by Copier; DO NOT EDIT MANUALLY
-gh 2.51.0                   # asdf plugin-add github-cli https://github.com/bartlomiejdanek/asdf-github-cli.git
-jq 1.6                      # asdf plugin-add jq https://github.com/AZMCode/asdf-jq.git
-yq 4.44.2                   # asdf plugin-add yq https://github.com/sudermanjr/asdf-yq.git
-kubectl 1.29.3              # asdf plugin-add kubectl https://github.com/asdf-community/asdf-kubectl.git
-teleport-community 14.3.20  # asdf plugin-add teleport-community https://github.com/MaloPolese/asdf-teleport-community.git
-talosctl 1.6.7              # asdf plugin-add talosctl https://github.com/SchulzSystemtechnik/iiot-misc-asdf-talosctl.git
-kubeseal 0.27.0             # asdf plugin-add kubeseal https://github.com/stefansedich/asdf-kubeseal.git
-helm 3.15.2                 # asdf plugin-add helm https://github.com/Antiarchitect/asdf-helm.git
+gh 2.51.0                   # https://github.com/SchulzSystemtechnik/asdf-github-cli.git
+jq 1.7.1                    # https://github.com/SchulzSystemtechnik/iiot-misc-asdf-jq.git
+yq 4.44.2                   # https://github.com/SchulzSystemtechnik/iiot-misc-asdf-yq.git
+kubectl 1.30.1              # https://github.com/SchulzSystemtechnik/iiot-misc-asdf-kubectl.git
+teleport-community 14.3.20  # https://github.com/SchulzSystemtechnik/iiot-misc-asdf-teleport-community.git
+talosctl 1.7.5              # https://github.com/SchulzSystemtechnik/iiot-misc-asdf-talosctl.git
+kubeseal 0.27.0             # https://github.com/SchulzSystemtechnik/iiot-misc-asdf-kubeseal.git
+helm 3.15.2                 # https://github.com/SchulzSystemtechnik/iiot-misc-asdf-helm.git

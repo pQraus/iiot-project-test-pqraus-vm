@@ -1,0 +1,89 @@
+metric_server:
+  - name: node_exporter
+    address: http://prometheus-node-exporter:9100
+  - name: kube_state_metrics
+    address: http://kube-state-metrics.kube-system:8080
+box_infos:
+  static_infos: {}
+  infos_from_metrics:
+    - metric: kube_node_info{source="kube_state_metrics"}
+      labels_keep_and_rename:
+        kubelet_version: kubelet_version
+    - metric: node_os_info{source="node_exporter"}
+      labels_keep_and_rename:
+        name: os_name
+        version_id: os_version
+calculated_metrics:
+  - name: pods_failed
+    description: Number of pods currently failed
+    calculation:
+      aggregation: sum
+      calculations:
+        - metric: kube_pod_status_phase{source="kube_state_metrics", phase="Failed"}
+        - aggregation: sum
+          calculations:
+            - aggregation: prod
+              match_labels: [uid]
+              calculations:
+                - metric: kube_pod_status_phase{source="kube_state_metrics", phase="Running"}
+                - metric: kube_pod_status_ready{source="kube_state_metrics", condition="false"}
+  - name: pods_pending
+    description: Number of pods currently pending
+    calculation:
+      aggregation: sum
+      calculations:
+        - metric: kube_pod_status_phase{source="kube_state_metrics", phase="Pending"}
+  - name: pods_running
+    description: Number of pods currently running
+    calculation:
+      aggregation: sub
+      calculations:
+        - aggregation: sum
+          calculations:
+            - metric: kube_pod_status_phase{source="kube_state_metrics", phase="Running"}
+        - aggregation: sum
+          calculations:
+            - aggregation: prod
+              match_labels: [pod, uid]
+              calculations:
+                - metric: kube_pod_status_phase{source="kube_state_metrics", phase="Running"}
+                - metric: kube_pod_status_ready{source="kube_state_metrics", condition="false"}
+  - name: pods_succeeded
+    description: Number of pods currently succeeded
+    calculation:
+      aggregation: sum
+      calculations:
+        - metric: kube_pod_status_phase{source="kube_state_metrics", phase="Succeeded"}
+  - name: pods_unknown
+    description: Number of pods currently unknown
+    calculation:
+      aggregation: sub
+      calculations:
+        - aggregation: sum
+          calculations:
+            - metric: kube_pod_status_phase{source="kube_state_metrics", phase="Unknown"}
+            - metric: kube_pod_status_ready{source="kube_state_metrics", condition="unknown"}
+        - aggregation: prod
+          match_labels: [pod, uid]
+          calculations:
+            - metric: kube_pod_status_phase{source="kube_state_metrics", phase="Unknown"}
+            - metric: kube_pod_status_ready{source="kube_state_metrics", condition="unknown"}
+  - name: node_cpu_seconds_total
+    description: Total user and system CPU time spent in seconds
+    calculation:
+      aggregation: sum
+      match_labels: [cpu]
+      calculations:
+        - metric: node_cpu_seconds_total{source="node_exporter", mode=~"user|system"}
+  - name: node_filesystem_size_bytes
+    description: Filesystem size in bytes
+    calculation:
+      aggregation: sum
+      calculations:
+        - metric: node_filesystem_size_bytes{source="node_exporter", device=~"(/.*/.*)"}
+  - name: node_filesystem_avail_bytes
+    description: Filesystem space available to non-root users in bytes
+    calculation:
+      aggregation: sum
+      calculations:
+        - metric: node_filesystem_avail_bytes{source="node_exporter", device=~"(/.*/.*)"}

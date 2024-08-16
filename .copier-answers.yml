@@ -1,10 +1,24 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: v2.3.1-82-g0925124
+_commit: v2.3.2-53-g141e0e5
 _src_path: https://github.com/SchulzSystemtechnik/iiot-base-box.git
-additional_system_apps: []
-advanced_mode: false
+additional_system_apps:
+- local_monitoring
+advanced_mode: true
+container_registries:
+- docker
+- schulz_registry
 environment: dev
+hardware_setup: []
 name: test-pqraus-vm
 preset_type: IIoT
+repo_github: true
 repo_github_name: pQraus/iiot-project-test-pqraus-vm
+teleport_ca_pin: sha256:1b03b275dd06af7eff4795f2c8cbb0d61a7c528852c51d0a461bb4be570fcd20
+teleport_configurator_tag: review
+teleport_labels:
+    env: dev
+    usage: iiot
+teleport_server_url: prod.teleport.schulzdevcloud.com:443
 teleport_usage_label: iiot
+traefik_setup:
+- private

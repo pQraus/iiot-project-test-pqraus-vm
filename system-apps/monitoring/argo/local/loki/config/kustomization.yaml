@@ -1,0 +1,6 @@
+namespace: monitoring
+
+configMapGenerator:
+  - name: loki-config
+    files:
+      - config.yaml

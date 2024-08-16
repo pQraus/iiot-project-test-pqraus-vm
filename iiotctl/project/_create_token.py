@@ -219,7 +219,7 @@ def _configure_developer_tokens(providers: List[Provider]):
             print(50*"~")
             provider_conf["file_writer"](Token(name, token))
         except Exception as ex:
-            raise TyperAbort(f"While creating token:", f"{type(ex)}: {str(ex)}")
+            raise TyperAbort("While creating token:", f"{type(ex)}: {str(ex)}")
 
     print("Successfully rendered access token manifests.")
 
@@ -264,6 +264,19 @@ def _is_connected_to_correct_teleport_cluster():
         return False
 
 
+def _list_providers(grafana: bool, docker: bool, schulz_registry: bool) -> List[Provider]:
+    providers = []
+
+    if grafana:
+        providers.append(Provider.GRAFANA)
+    if docker:
+        providers.append(Provider.DOCKER)
+    if schulz_registry:
+        providers.append(Provider.SCHULZ_REGISTRY)
+
+    return providers
+
+
 @check.dependency(*DEP_TSH)
 @check.dependency(*DEP_TCTL)
 def create_token(
@@ -275,26 +288,22 @@ def create_token(
     dev: bool
 ):
 
-    if TELEPORT_ENABLED is False:
-        raise TyperAbort("Teleport must be enabled.")
+    selected_provider = _list_providers(grafana, docker, schulz_registry)
 
-    selected_provider = []
-    selected_provider += ([Provider.GRAFANA] if grafana else [])
-    selected_provider += ([Provider.DOCKER] if docker else [])
-    selected_provider += ([Provider.SCHULZ_REGISTRY] if schulz_registry else [])
+    if (not dev and selected_provider) or teleport:
+        if not TELEPORT_ENABLED:
+            raise TyperAbort(f"Teleport access required, but for this box disabled: {TELEPORT_ENABLED=}.")
 
-    if not len(selected_provider) > 0:
-        print_error("Choose at least one token to be created")
-        return
-
-    if not dev or teleport:
         if not _is_connected_to_correct_teleport_cluster():
             Command.check_output(["tsh", "logout"])
             _teleport.login(TELEPORT_PROXY_URL)
 
-        if teleport:
-            _create_teleport_token(ttl)
-            print()
+    if teleport:
+        _create_teleport_token(ttl)
+        print()
+
+    if not selected_provider:
+        return
 
     if dev:
         _configure_developer_tokens(selected_provider)

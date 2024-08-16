@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: aggregated-metric-exporter
+  namespace: monitoring
+spec:
+  selector:
+    app: aggregated-metric-exporter
+  ports:
+    - port: 9200

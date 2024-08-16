@@ -1,0 +1,6 @@
+namespace: monitoring
+
+configMapGenerator:
+  - name: aggregated-metric-exporter
+    files:
+      - config.yaml

@@ -1,0 +1,7 @@
+resources:
+  - fluent-bit/
+  - grafana/
+  - loki/
+  - process-exporter/
+  - timestamp-api/
+  - victoria-metrics-server/

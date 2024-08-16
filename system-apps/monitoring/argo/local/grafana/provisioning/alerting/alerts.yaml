@@ -1,0 +1,697 @@
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: kubernetes-apps
+    folder: "Monitoring"
+    interval: 10s
+    rules:
+      - uid: f345d3aa-0e02-43b9-9cbe-27d8f00bbf62
+        title: " KubePodCrashLooping"
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: max_over_time(kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff", job!=""}[5m]) >= 1
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          description: 'Pod {{ index $labels "namespace" }}/{{ index $labels "pod" }} ({{ index $labels "container" }}) is in waiting state (reason: "CrashLoopBackOff").'
+          summary: Pod is crash looping.
+        isPaused: false
+      - uid: a6c0a28b-ad1b-40a0-b0ec-e1f29a8cb265
+        title: KubePodNotReady
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: "sum by (namespace, pod, cluster) (\r\n  max by(namespace, pod, cluster) (\r\n    kube_pod_status_phase{job!=\"\", phase=~\"Pending|Unknown|Failed\"}\r\n  ) * on(namespace, pod, cluster) group_left(owner_kind) topk by(namespace, pod, cluster) (\r\n    1, max by(namespace, pod, owner_kind, cluster) (kube_pod_owner{owner_kind!=\"Job\"})\r\n  )\r\n) > 0\r\n"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          description: 'Pod {{ index $labels "namespace" }}/{{ index $labels "pod" }} has been in a non-ready state for longer than 15 minutes.'
+          summary: Pod has been in a non-ready state for more than 15 minutes.
+        isPaused: false
+      - uid: adf41243-f1e3-4133-b940-8d63fc539725
+        title: KubeDeploymentGenerationMismatch
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: "kube_deployment_status_observed_generation{job!=\"\"}\r\n  !=\r\nkube_deployment_metadata_generation{job!=\"\"}\r\n"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          description: 'Deployment generation for {{ index $labels "namespace" }}/{{ index $labels "deployment" }} does not match, this indicates that the Deployment has failed but has not been rolled back.'
+          summary: Deployment generation mismatch due to possible roll-back.
+        isPaused: false
+      - uid: f6a16e13-870f-4364-8dad-c8ea0a261900
+        title: KubeDeploymentReplicasMismatch
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: "(\r\n  kube_deployment_spec_replicas{job!=\"\"}\r\n    >\r\n  kube_deployment_status_replicas_available{job!=\"\"}\r\n) and (\r\n  changes(kube_deployment_status_replicas_updated{job!=\"\"}[10m])\r\n    ==\r\n  0\r\n)\r\n"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          description: 'Deployment {{ index $labels "namespace" }}/{{ index $labels "deployment" }} has not matched the expected number of replicas for longer than 15 minutes.'
+          summary: Deployment has not matched the expected number of replicas.
+        isPaused: false
+      - uid: f20f8349-c901-4e57-8f15-91c2a815a54c
+        title: KubeDeploymentRolloutStuck
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: "kube_deployment_status_condition{condition=\"Progressing\", status=\"false\",job!=\"\"}\r\n!= 0"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          description: 'Rollout of deployment {{ index $labels "namespace" }}/{{ index $labels "deployment" }} is not progressing for longer than 15 minutes.'
+          summary: Deployment rollout is not progressing.
+        isPaused: false
+      - uid: a2ddc8ce-36ba-4fcb-bd10-65e6a3d5cf59
+        title: KubeStatefulSetReplicasMismatch
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: "(\r\n  kube_statefulset_status_replicas_ready{job!=\"\"}\r\n    !=\r\n  kube_statefulset_status_replicas{job!=\"\"}\r\n) and (\r\n  changes(kube_statefulset_status_replicas_updated{job!=\"\"}[10m])\r\n    ==\r\n  0\r\n)"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          description: 'StatefulSet {{ index $labels "namespace" }}/{{ index $labels "statefulset" }} has not matched the expected number of replicas for longer than 15 minutes.'
+          summary: Deployment has not matched the expected number of replicas.
+        isPaused: false
+      - uid: c7b02889-6a06-4c21-a63f-79f1b87dd867
+        title: KubeStatefulSetGenerationMismatch
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: "kube_statefulset_status_observed_generation{job!=\"\"}\r\n  !=\r\nkube_statefulset_metadata_generation{job!=\"\"}"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          description: 'StatefulSet generation for {{ index $labels "namespace" }}/{{ index $labels "statefulset" }} does not match, this indicates that the StatefulSet has failed but has not been rolled back.'
+          summary: StatefulSet generation mismatch due to possible roll-back.
+        isPaused: false
+      - uid: c9554a35-d163-402b-8b99-64fd63924d69
+        title: KubeStatefulSetUpdateNotRolledOut
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: "(\r\n  max without (revision) (\r\n    kube_statefulset_status_current_revision{job!=\"\"}\r\n      unless\r\n    kube_statefulset_status_update_revision{job!=\"\"}\r\n  )\r\n    *\r\n  (\r\n    kube_statefulset_replicas{job!=\"\"}\r\n      !=\r\n    kube_statefulset_status_replicas_updated{job!=\"\"}\r\n  )\r\n)  and (\r\n  changes(kube_statefulset_status_replicas_updated{job!=\"\"}[5m])\r\n    ==\r\n  0\r\n)"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          description: 'StatefulSet {{ index $labels "namespace" }}/{{ index $labels "statefulset" }} update has not been rolled out.'
+          summary: StatefulSet update has not been rolled out.
+        isPaused: false
+      - uid: e968d9e1-f4d8-408c-a187-6c8a33ae34c9
+        title: KubeDaemonSetRolloutStuck
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: "(\r\n  (\r\n    kube_daemonset_status_current_number_scheduled{job!=\"\"}\r\n     !=\r\n    kube_daemonset_status_desired_number_scheduled{job!=\"\"}\r\n  ) or (\r\n    kube_daemonset_status_number_misscheduled{job!=\"\"}\r\n     !=\r\n    0\r\n  ) or (\r\n    kube_daemonset_status_updated_number_scheduled{job!=\"\"}\r\n     !=\r\n    kube_daemonset_status_desired_number_scheduled{job!=\"\"}\r\n  ) or (\r\n    kube_daemonset_status_number_available{job!=\"\"}\r\n     !=\r\n    kube_daemonset_status_desired_number_scheduled{job!=\"\"}\r\n  )\r\n) and (\r\n  changes(kube_daemonset_status_updated_number_scheduled{job!=\"\"}[5m])\r\n    ==\r\n  0\r\n)"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          description: 'DaemonSet {{ index $labels "namespace" }}/{{ index $labels "daemonset" }} has not finished or progressed for at least 15 minutes.'
+          summary: DaemonSet rollout is stuck.
+        isPaused: false
+      - uid: d2448a1a-6dc2-429f-808e-9a533ebdad69
+        title: KubeContainerWaiting
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: sum by (namespace, pod, container, cluster) (kube_pod_container_status_waiting_reason{job!=""}) > 0
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 1h
+        annotations:
+          description: 'pod/{{ index $labels "pod" }} in namespace {{ index $labels "namespace" }} on container {{ index $labels "container"}} has been in waiting state for longer than 1 hour.'
+          summary: Pod container waiting longer than 1 hour.
+        isPaused: false
+      - uid: a7be1a79-9500-493d-99fc-d8093cd002c0
+        title: KubeDaemonSetNotScheduled
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: "kube_daemonset_status_desired_number_scheduled{job!=\"\"}\r\n  -\r\nkube_daemonset_status_current_number_scheduled{job!=\"\"} > 0"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 10m
+        annotations:
+          description: '{{ index $values "A" }} Pods of DaemonSet {{ index $labels "namespace" }}/{{ index $labels "daemonset" }} are not scheduled.'
+          summary: DaemonSet pods are not scheduled.
+        isPaused: false
+      - uid: bacc6a0f-17b3-48a3-bd96-175b6fa4cc04
+        title: KubeDaemonSetMisScheduled
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: kube_daemonset_status_number_misscheduled{job!=""} > 0
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          description: '{{ index $values "A" }} Pods of DaemonSet {{ index $labels "namespace" }}/{{ index $labels "daemonset" }} are running where they are not supposed to run.'
+          summary: DaemonSet pods are misscheduled.
+        isPaused: false
+      - uid: a3d56a6a-dd20-452b-bdc3-da9a1915cb72
+        title: KubeJobNotCompleted
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: "time() - max by(namespace, job_name, cluster) (kube_job_status_start_time{job!=\"\"}\r\n  and\r\nkube_job_status_active{job!=\"\"} > 0) > 43200"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 1m
+        annotations:
+          description: 'Job {{ index $labels "namespace" }}/{{ index $labels "job_name" }} is taking more than {{ "43200" | humanizeDuration }} to complete.'
+          summary: Job did not complete in time.
+        isPaused: false
+      - uid: b87e84e2-c000-4487-ac40-3889b7171254
+        title: KubeJobFailed
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: kube_job_failed{job!=""}  > 0
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          description: 'Job {{ index $labels "namespace" }}/{{ index $labels "job_name" }} failed to complete. Removing failed job after investigation should clear this alert.'
+          summary: Job failed to complete.
+        isPaused: false
+  - orgId: 1
+    name: kubernetes-resources
+    folder: "Monitoring"
+    interval: 10s
+    rules:
+      - uid: c68f0e51-3077-4976-baae-549512410a6a
+        title: KubeCPUOvercommit
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: "sum(kube_pod_container_resource_requests{job=\"kube_state_metrics\", namespace!=\"\",  resource=\"cpu\"}) by (cluster) - (sum(kube_node_status_allocatable{job!=\"\",resource=\"cpu\"}) by (cluster) - max(kube_node_status_allocatable{job!=\"\",resource=\"cpu\"}) by (cluster)) > 0\r\nand\r\n(sum(kube_node_status_allocatable{job!=\"\",resource=\"cpu\"}) by (cluster) - max(kube_node_status_allocatable{job!=\"\",resource=\"cpu\"}) by (cluster)) > 0"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 10m
+        annotations:
+          description: 'Cluster {{ index $labels "cluster" }} has overcommitted CPU resource requests for Pods by {{ index $values "A" }} CPU shares and cannot tolerate node failure.'
+          summary: Cluster has overcommitted CPU resource requests.
+        isPaused: false
+      - uid: b1e9f374-80e8-4683-94e3-45b50d95b2be
+        title: KubeMemoryOvercommit
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: "sum(namespace_memory:kube_pod_container_resource_requests:sum{}) by (cluster) - (sum(kube_node_status_allocatable{resource=\"memory\", job!=\"\"}) by (cluster) - max(kube_node_status_allocatable{resource=\"memory\", job!=\"\"}) by (cluster)) > 0\r\nand\r\n(sum(kube_node_status_allocatable{resource=\"memory\", job!=\"\"}) by (cluster) - max(kube_node_status_allocatable{resource=\"memory\", job!=\"\"}) by (cluster)) > 0"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 10m
+        annotations:
+          description: 'Cluster {{ index $labels "cluster" }} has overcommitted memory resource requests for Pods by {{ humanize (index $values "A").Value }} bytes and cannot tolerate node failure.'
+          summary: Cluster has overcommitted memory resource requests.
+        isPaused: false
+      - uid: e0827a92-afdd-4977-abca-7466926a1cff
+        title: KubeCPUQuotaOvercommit
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: "sum(min without(resource) (kube_resourcequota{job!=\"\", type=\"hard\", resource=~\"(cpu|requests.cpu)\"})) by (cluster)\r\n  /\r\nsum(kube_node_status_allocatable{resource=\"cpu\", job!=\"\"}) by (cluster)\r\n  > 1.5"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          description: 'Cluster {{ index $labels "cluster" }}  has overcommitted CPU resource requests for Namespaces.'
+          summary: Cluster has overcommitted CPU resource requests.
+        isPaused: false
+      - uid: fa2855a5-4ba5-401b-8d09-b73570c18600
+        title: KubeMemoryQuotaOvercommit
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: "sum(min without(resource) (kube_resourcequota{job!=\"\", type=\"hard\", resource=~\"(memory|requests.memory)\"})) by (cluster)\r\n  /\r\nsum(kube_node_status_allocatable{resource=\"memory\", job!=\"\"}) by (cluster)\r\n  > 1.5"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          description: 'Cluster {{ index $labels "cluster" }}  has overcommitted memory resource requests for Namespaces.'
+          summary: Cluster has overcommitted memory resource requests.
+        isPaused: false
+      - uid: d878d8b3-0cc2-4d6b-81c9-0be359a9bb37
+        title: KubeQuotaAlmostFull
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: "kube_resourcequota{job!=\"\", type=\"used\"}\r\n  / ignoring(instance, job, type)\r\n(kube_resourcequota{job!=\"\", type=\"hard\"} > 0)\r\n  > 0.9 < 1"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          description: 'Namespace {{ index $labels "namespace" }} is using {{ humanizePercentage (index $values "A").Value }} of its {{ index $labels "resource" }} quota.'
+          summary: Namespace quota is going to be full.
+        isPaused: false
+      - uid: c519f33b-7a89-4323-8ee3-3314b854e930
+        title: KubeQuotaFullyUsed
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: "kube_resourcequota{job!=\"\", type=\"used\"}\r\n  / ignoring(instance, job, type)\r\n(kube_resourcequota{job!=\"\", type=\"hard\"} > 0)\r\n  == 1"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          description: 'Namespace {{ index $labels "namespace" }} is using {{ humanizePercentage (index $values "A").Value }} of its {{ index $labels "resource" }} quota.'
+          summary: Namespace quota is fully used.
+        isPaused: false
+      - uid: d1f0ecb2-276a-4ed9-a009-6491e52c0d5f
+        title: KubeQuotaExceeded
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: "kube_resourcequota{job!=\"\", type=\"used\"}\r\n  / ignoring(instance, job, type)\r\n(kube_resourcequota{job!=\"\", type=\"hard\"} > 0)\r\n  > 1"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          description: 'Namespace {{ index $labels "namespace" }} is using {{ humanizePercentage (index $values "A").Value }} of its {{ index $labels "resource" }} quota.'
+          summary: Namespace quota has exceeded the limits.
+        isPaused: false
+      - uid: c309443f-00f8-44be-b049-121d42d80757
+        title: CPUThrottlingHigh
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: "sum(increase(container_cpu_cfs_throttled_periods_total{container!=\"\", }[5m])) by (container, pod, namespace, cluster)\r\n  /\r\nsum(increase(container_cpu_cfs_periods_total{}[5m])) by (container, pod, namespace, cluster)\r\n  > ( 25 / 100 )"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          description: '{{ humanizePercentage (index $values "A").Value }} throttling of CPU in cluster {{ index $labels "cluster" }} namespace {{ index $labels "namespace" }} for container {{ index $labels "container" }} in pod {{ index $labels "pod" }}.'
+          summary: Processes experience elevated CPU throttling.
+        isPaused: false
+      - uid: ae99af23-1e72-4ee5-a6a8-9217994b5257
+        title: ContainerCPUOvercommit
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: "max(rate(container_cpu_usage_seconds_total[$__rate_interval])) by (namespace, pod, container)\r\n-\r\nmax(kube_pod_container_resource_requests{resource=\"cpu\"}) by (namespace, pod, container)\r\n> 0"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          description: 'Container {{ index $labels "container" }} has overcommited CPU resource requests by {{ humanize (index $values "A").Value }} CPU shares.'
+          summary: Container has overcommitted CPU resource requests.
+        isPaused: false
+      - uid: d77cc7ab-df09-4a9a-8f84-d51e3ba14687
+        title: ContainerMemoryOvercommit
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: "max(container_memory_rss) by (namespace, pod, container)\r\n-\r\nmax(kube_pod_container_resource_requests{resource=\"memory\"}) by (namespace, pod, container)\r\n> 0\r\nor\r\nmax(container_memory_working_set_bytes) by (namespace, pod, container)\r\n-\r\nmax(kube_pod_container_resource_requests{resource=\"memory\"}) by (namespace, pod, container)\r\n> 0"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          description: 'Container {{ index $labels "container" }} has overcommitted memory resource requests for Pods by {{ humanize (index $values "A").Value }} bytes.'
+          summary: Container has overcommitted memory resource requests.
+        isPaused: false
+  - orgId: 1
+    name: kubernetes-system
+    folder: "Monitoring"
+    interval: 10s
+    rules:
+      - uid: e382a716-874f-4a72-b294-97659a13f426
+        title: KubeVersionMismatch
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: count by (cluster) (count by (git_version, cluster) (label_replace(kubernetes_build_info{job!~"kube-dns|coredns"},"git_version","$1","git_version","(v[0-9]*.[0-9]*).*"))) > 1
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          description: 'There are {{ index $values "A" }} different semantic versions of Kubernetes components running.'
+          summary: Different semantic versions of Kubernetes components running.
+        isPaused: false
+      - uid: a715090d-df68-4052-aece-abccbd9e288d
+        title: KubeClientErrors
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: "(sum(rate(rest_client_requests_total{job=\"kube-apiserver\",code=~\"5..\"}[5m])) by (cluster, instance, job, namespace)\r\n  /\r\nsum(rate(rest_client_requests_total{job=\"kube-apiserver\"}[5m])) by (cluster, instance, job, namespace))\r\n> 0.01"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          description: 'Kubernetes API server client {{ index $labels "job" }}/{{ index $labels "instance" }} is experiencing {{ humanizePercentage (index $values "A").Value }} errors.'
+          summary: Kubernetes API server client is experiencing errors.
+        isPaused: false
+  - orgId: 1
+    name: kubernetes-system-kubelet
+    folder: "Monitoring"
+    interval: 10s
+    rules:
+      - uid: de2e38da-5a53-4848-8e41-42573307fc7a
+        title: KubeNodeNotReady
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics-server
+            model:
+              editorMode: code
+              expr: kube_node_status_condition{job!="",condition="Ready",status="true"} == 0
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          description: '{{ index $labels "node" }} has been unready for more than 15 minutes.'
+          summary: Node is not ready.
+        isPaused: false

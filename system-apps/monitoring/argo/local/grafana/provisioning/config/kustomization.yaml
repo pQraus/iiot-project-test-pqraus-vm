@@ -1,0 +1,6 @@
+namespace: monitoring
+
+configMapGenerator:
+  - name: grafana-provisioning-config
+    files:
+      - grafana.ini

@@ -1,0 +1,1 @@
+Source of these manifestes: https://github.com/kubernetes/kube-state-metrics/tree/main/examples/standard

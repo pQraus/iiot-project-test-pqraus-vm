@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loki
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loki
+  template:
+    metadata:
+      labels:
+        app: loki
+      annotations:
+        log-format: json
+    spec:
+      containers:
+        - name: loki
+          image: grafana/loki:2.9.2
+          args:
+            - -config.file=/etc/loki/config.yaml
+            - -log.format=json
+          resources:
+            limits:
+              memory: 600Mi
+              cpu: 250m
+            requests:
+              memory: 200Mi
+              cpu: 20m
+          volumeMounts:
+            - name: config
+              mountPath: /etc/loki
+            - name: data
+              mountPath: /loki
+      volumes:
+        - name: config
+          configMap:
+            name: loki-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: loki

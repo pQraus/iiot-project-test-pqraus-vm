@@ -1,0 +1,10 @@
+namespace: monitoring
+
+resources:
+  - service.yaml
+  - serviceaccount.yaml
+  - deployment.yaml
+  - clusterrole.yaml
+  - clusterrolebinding.yaml
+  - pvc.yaml
+  - config/

@@ -1,0 +1,7 @@
+namespace: monitoring
+
+resources:
+  - deployment.yaml
+  - service.yaml
+  - pvc.yaml
+  - config/

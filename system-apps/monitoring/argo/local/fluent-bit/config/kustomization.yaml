@@ -1,0 +1,12 @@
+namespace: monitoring
+
+configMapGenerator:
+  - name: fluent-bit
+    files:
+      - fluent-bit.conf
+      - inputs.conf
+      - filters.conf
+      - outputs.conf
+      - parsers.conf
+      - custom_parsers.conf
+      - lua-scripts.lua

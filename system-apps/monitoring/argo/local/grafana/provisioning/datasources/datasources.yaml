@@ -1,0 +1,29 @@
+apiVersion: 1
+datasources:
+  - name: victoria-metrics
+    type: prometheus
+    uid: victoriametrics-server
+    orgId: 1
+    access: proxy
+    editable: false
+    url: http://victoria-metrics-server:8428 # http://prometheus-server:80
+    isDefault: true
+    jsonData:
+      timeInterval: 20s # scrape_interval
+  - name: infinity
+    type: yesoreyeram-infinity-datasource
+    uid: infinity
+    orgId: 1
+    editable: false
+    url: ""
+    basicAuth: false
+    basicAuthUser: ""
+    isDefault: false
+    jsonData:
+      global_queries: []
+    readOnly: false
+  - name: loki
+    type: loki
+    uid: loki-datasource
+    access: proxy
+    url: http://loki:3100

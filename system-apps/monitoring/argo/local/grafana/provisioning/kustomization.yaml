@@ -1,0 +1,7 @@
+namespace: monitoring
+
+resources:
+  - datasources/
+  - dashboards/
+  - alerting/
+  - config/

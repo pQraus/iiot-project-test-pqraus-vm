@@ -1,0 +1,6 @@
+namespace: monitoring
+
+configMapGenerator:
+  - name: grafana-provisioning-datasources
+    files:
+      - datasources.yaml

@@ -1,0 +1,8 @@
+namespace: monitoring
+
+resources:
+  - dashboards/
+  - provisioning/
+  - deployment.yaml
+  - ingress.yaml
+  - service.yaml
