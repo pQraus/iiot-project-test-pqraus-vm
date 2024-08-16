@@ -9,7 +9,7 @@ configMapGenerator:
 
 images:
   - name: schulzsystemtechnik/iiot-misc-teleport-configurator
-    newTag: stable
+    newTag: review
 
 resources:
   - resources/configurator-cronjob.yaml

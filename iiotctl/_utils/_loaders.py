@@ -18,22 +18,24 @@ def load_configuration(config_file: Path):
 
 
 def load_asdf_plugins(asdf_file: Path):
-    with open(asdf_file, "r") as rd:
-        plugins = rd.read().rstrip().lstrip()
-        plugins = [line for line in plugins.splitlines() if not line.startswith("#")]
-
-    asdf_plugins = {}
-
     try:
+        with open(asdf_file, "r") as rd:
+            plugins = rd.read().rstrip().lstrip()
+            plugins = [line for line in plugins.splitlines() if not line.startswith("#")]
+
         if not plugins:
             raise
+
+        asdf_plugins = {}
+
         for p in plugins:
             tmp = p.split("#")
-            src = tmp[1].split(" ")[-1]
+            src = tmp[1].lstrip()
             tool, vers = tmp[0].rstrip().split(" ")
             asdf_plugins.update({tool: {"version": vers, "source": src}})
     except Exception as exc:
         raise TyperAbort(exc, "Unable to parse asdf tool version data from file:", str(asdf_file))
+
     return asdf_plugins
 
 

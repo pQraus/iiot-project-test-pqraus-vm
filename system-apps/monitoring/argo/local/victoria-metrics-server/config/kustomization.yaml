@@ -1,0 +1,6 @@
+configMapGenerator:
+  - name: victoria-metrics-server
+    files:
+      - scrape-config.yaml
+
+namespace: monitoring

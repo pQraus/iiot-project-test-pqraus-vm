@@ -16,8 +16,8 @@ kubernetes_service:
   enabled: true
   kubeconfig_file: "/secrets/kubernetes/admin/config"
   labels:
-    usage: iiot
     env: dev
+    usage: iiot
     
 app_service:
   enabled: true
@@ -31,23 +31,20 @@ app_service:
         - name: teleport-sync-status
           command: ["/bin/busybox", "cat", "/teleport-agent/sync-status"]
           period: 0h10m0s
-        - name: test
-          command: ["/bin/busybox", "echo", "$FOO"]
-          period: 0h10m0s
       labels:
-        usage: iiot
         env: dev
+        usage: iiot
         kind: talos
-        base-repo-version: v2.3.1-82-g0925124
+        base-repo-version: v2.3.2-53-g141e0e5
         repo-url: https://github.com/pQraus/iiot-project-test-pqraus-vm
-        local-monitoring: False
+        local-monitoring: True
         remote-monitoring: False
-        
+
     - name: private-test-pqraus-vm
       uri: http://10.96.0.100:80
       labels:
-        usage: iiot
         env: dev
+        usage: iiot
         kind: ingress-private
 
 db_service:

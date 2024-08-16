@@ -1,0 +1,80 @@
+global:
+  scrape_interval: 20s
+
+scrape_configs:
+  - job_name: node_exporter
+    kubernetes_sd_configs:
+      - namespaces:
+          names:
+            - monitoring
+        role: service
+    metric_relabel_configs:
+      - action: keep
+        regex: (node_network_address_info|node_network_speed_bytes|node_network.*bytes_total);(eth\d+|en.+)|(node_memory_MemAvailable_bytes|node_memory_MemTotal_bytes);.*
+        source_labels:
+          - __name__
+          - device
+    relabel_configs:
+      - action: keep
+        regex: prometheus-node-exporter
+        source_labels:
+          - __meta_kubernetes_service_name
+  - job_name: kube_state_metrics
+    kubernetes_sd_configs:
+      - namespaces:
+          names:
+            - kube-system
+        role: service
+    metric_relabel_configs:
+      - action: keep
+        regex: kube_pod_info|kube_pod_status_phase|kube_pod_status_ready|kube_pod_created|kube_pod_container_state_started|kube_pod_start_time|kube_pod_owner|kube_pod_container_resource_requests|kube_pod_container_status_restarts_total|kube_pod_container_resource_limits|kube_pod_container_info|kube_pod_container_status_running|kube_pod_container_status_ready|kube_pod_container_status_terminated|kube_pod_container_status_waiting|kube_pod_container_status_waiting_reason|kube_pod_container_status_terminated_reason|kube_daemonset_status_current_number_scheduled|kube_daemonset_status_number_ready|kube_daemonset_status_updated_number_scheduled|kube_daemonset_status_number_available|kube_daemonset_status_desired_number_scheduled|kube_deployment_status_replicas|kube_deployment_status_replicas_ready|kube_deployment_status_replicas_updated|kube_deployment_status_replicas_available|kube_replicaset_status_replicas|kube_replicaset_status_fully_labeled_replicas|kube_replicaset_status_ready_replicas|kube_namespace_status_phase|kube_namespace_created|kube_node_status_allocatable
+        source_labels:
+          - __name__
+    relabel_configs:
+      - action: keep
+        regex: kube-state-metrics
+        source_labels:
+          - __meta_kubernetes_service_name
+  - bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    job_name: cadvisor
+    kubernetes_sd_configs:
+      - role: node
+    metric_relabel_configs:
+      - action: keep
+        regex: container_cpu_usage_seconds_total|container_memory_working_set_bytes|container_memory_rss|container_network.*_bytes_total
+        source_labels:
+          - __name__
+    relabel_configs:
+      - replacement: kubernetes.default.svc:443
+        target_label: __address__
+      - regex: (.+)
+        replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
+        source_labels:
+          - __meta_kubernetes_node_name
+        target_label: __metrics_path__
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      insecure_skip_verify: true
+  - job_name: process_exporter
+    kubernetes_sd_configs:
+      - namespaces:
+          names:
+            - monitoring
+        role: service
+    relabel_configs:
+      - action: keep
+        regex: process-exporter
+        source_labels:
+          - __meta_kubernetes_service_name
+  - job_name: aggregated_metric_exporter
+    kubernetes_sd_configs:
+      - namespaces:
+          names:
+            - monitoring
+        role: service
+    relabel_configs:
+      - action: keep
+        regex: aggregated-metric-exporter
+        source_labels:
+          - __meta_kubernetes_service_name

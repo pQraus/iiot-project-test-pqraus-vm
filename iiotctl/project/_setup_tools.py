@@ -1,128 +1,141 @@
-import os
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Set
 
 import typer
+from packaging.version import Version
 from packaging.version import parse as parse_version
 from rich import print
 from rich.table import Table
 
+from .._utils import _check as check
 from .._utils._common import Command, TyperAbort
-from .._utils._config import ASDF_PLUGINS
-from .._utils._constants import REPO_ROOT
+from .._utils._config import ASDF_PLUGINS, DEP_GH
 
 
-def _get_local_project_tools():
-    """get local project asdf tool names + version requirements"""
-    with open(REPO_ROOT / ".tool-versions") as rd:
-        exp_tools = rd.read().split("\n")[1:-1]
-        if not exp_tools:
-            raise TyperAbort("Project has no tool version requirements.")
-
-    return dict(line.split(" ")[:2] for line in exp_tools)  # dict with key-value pairs: {TOOL_NAME: VERSION}
-
-
-def _get_global_project_tools(path_glob_vers: Path):
-    """get global asdf tool names + version requirements"""
+def _get_globally_used_tools() -> Dict[str, str]:
+    """get global asdf tool names + version requirements; return dict with key-value pairs: {TOOL_NAME: VERSION}"""
+    path_glob_vers = Path.home() / ".tool-versions"
     glob_tools = {}
 
-    if path_glob_vers.exists():
-        with open(path_glob_vers) as rd:
-            glob_tools = rd.read().split("\n")[:-1]
+    if not path_glob_vers.exists():
+        return glob_tools
 
-        # dict with key-value pairs: {TOOL_NAME: VERSION}
-        if glob_tools:
-            glob_tools = dict(line.split(" ")[:2] for line in glob_tools)
+    with open(path_glob_vers) as rd:
+        glob_tools = rd.read().splitlines()
+
+    if glob_tools:
+        glob_tools = dict(line.split(" ")[:2] for line in glob_tools)
 
     return glob_tools
 
 
-def _list_installed_expected_tools(plugins: List[str], exp_tools: Dict[str, str]):
+def is_valid_version_in_list(vers_list: List[str], exp_vers: Version) -> bool:
+    """
+    return true if in given list is a version number, that has equal major and minor versions
+    and a patch version >= the given expected version number patch version
+    """
+    for vers in vers_list:
+        vers = parse_version(vers[2:])  # [2:] to cut off '  ' indent or ' *' prefix in 'asdf list *tool*'
+        if (vers.major == exp_vers.major) and (vers.minor == exp_vers.minor) and (vers.micro >= exp_vers.micro):
+            return True
+    return False
+
+
+def _list_tools_to_install() -> Set[str]:
     """list required tools + version and if they are installed or not"""
-    is_installed = {tool: False for tool in exp_tools}
+    curr_plugins = Command.check_output(cmd=["asdf", "plugin", "list"]).splitlines()
+    to_install = set()
 
-    for tool, exp_vers in exp_tools.items():
-        if tool not in plugins:
+    for tool, data in ASDF_PLUGINS.items():
+        if tool not in curr_plugins:
+            to_install.add(tool)
             continue
-        # list all installed versions of tool
-        vers_list = Command.check_output(cmd=["asdf", "list", tool]).split("\n")[:-1]
-        if not vers_list:
-            continue
-        exp_vers = parse_version(exp_vers)
-        for vers in vers_list:
-            vers = parse_version(vers[2:])  # [2:] to cut off '  ' indent or ' *' prefix in 'asdf list *tool*'
-            if (vers.major == exp_vers.major) and (vers.minor == exp_vers.minor) and (vers.micro >= exp_vers.micro):
-                is_installed[tool] = True
-                break
+        exp_vers = parse_version(data["version"])
+        # list all installed versions of specific tool
+        vers_list: List[str] = Command.check_output(cmd=["asdf", "list", tool]).splitlines()
+        if (not vers_list) or (not is_valid_version_in_list(vers_list, exp_vers)):
+            to_install.add(tool)
 
-    return is_installed
+    return to_install
 
 
-def _print_tool_version_overview(exp_tools: Dict[str, str], glob_tools: Dict[str, str], is_installed: Dict[str, bool]):
+def _print_tool_version_overview(glob_tools: Dict[str, str], to_install: Set[str]):
     """print tool required <-> tool installed version overview"""
-    table = Table(title="Asdf plugin overview:")
+    table = Table(title="Asdf tool overview:")
     table.add_column("NAME")
-    table.add_column("PROJECT_VERSION")
+    table.add_column("PROJECT VERSION")
     table.add_column("INSTALLED", justify="center")
     table.add_column("SYSTEM VERSION")
 
-    for tool in sorted(exp_tools.keys(), key=len):
-        version = exp_tools[tool]
-        status = ":white_heavy_check_mark:" if is_installed[tool] else ":x:"
+    for tool in sorted(ASDF_PLUGINS.keys(), key=len):
+        version = ASDF_PLUGINS[tool]["version"]
+        status = ":x:" if tool in to_install else ":white_heavy_check_mark:"
         table.add_row(tool, version, status, f"(global use: {glob_tools.get(tool, '---')})")
 
     print(table)
 
 
-def _add_required_plugins(plugins_to_add: List[str]):
-    """add required tools as plugins to asdf"""
-    print()
-    print("Add as asdf plugins:")
-    print("~"*25)
-    for tool in ASDF_PLUGINS:
-        if tool in plugins_to_add:
-            Command.check_output(cmd=["asdf", "plugin-add", tool, ASDF_PLUGINS[tool]["source"]])
-            print(f" - added '{tool}'")
+def _get_current_plugin_urls() -> dict[str, str]:
+    """get asdf plugin '{name: repo_url}' dict"""
+    tool_text = Command.check_output(["asdf", "plugin", "list", "--urls"])
+    tool_url_config = {}
+    for line in tool_text.splitlines():
+        tool, url = line.split(" ", 1)
+        url = url.lstrip()
+        tool_url_config.update({tool: url})
+    return tool_url_config
 
 
-def _install_required_tools(exp_tools: Dict[str, str], to_install: List[str]):
-    """install required tools as plugins to asdf"""
+def _install_tools(tools_to_install: Set[str]):
+    """add tools as asdf plugins; install tools"""
+    curr_tool_urls = _get_current_plugin_urls()
     print()
     print("Install tools:")
     print("~"*25)
-    for tool in to_install:
-        Command.check_output(cmd=["asdf", "install", tool, exp_tools[tool]])
-        print(f" - installed '{tool} {exp_tools[tool]}'")
+    for tool in tools_to_install:
+        plugin_url = ASDF_PLUGINS[tool]["source"]
+        local_version = ASDF_PLUGINS[tool]["version"]
+
+        if tool not in curr_tool_urls.keys():
+            Command.check_output(["asdf", "plugin", "add", tool, plugin_url])
+            print(f" - added plugin '{tool}'")
+        elif plugin_url != curr_tool_urls[tool]:
+            Command.check_output(["asdf", "plugin", "remove", tool])
+            Command.check_output(["asdf", "plugin", "add", tool, plugin_url])
+            print(f" - updated plugin '{tool}' repo url")
+        else:
+            Command.check_output(["asdf", "plugin", "update", tool])
+            print(f" - updated plugin '{tool}' repo")
+
+        Command.check_output(["asdf", "install", tool, local_version])
+        print(f" - installed tool '{tool}'")
+        print()
+
+    print()
 
 
+@check.dependency(*DEP_GH)
 def setup_tools(setup_required: bool):
-    if not Path(REPO_ROOT / ".tool-versions").exists():
-        raise TyperAbort("Missing local '.tool-versions' file to retrieve tool version requirements.")
+    logged_into_gh = Command.check(cmd=["gh", "auth", "status"])
+    if not logged_into_gh:
+        raise TyperAbort("You need to be logged into github cli tool 'gh'.")
 
-    exp_tools = _get_local_project_tools()
-    path_glob_vers = Path(os.path.expanduser("~")) / ".tool-versions"
-    glob_tools = _get_global_project_tools(path_glob_vers)
+    glob_tools = _get_globally_used_tools()
+    tools_to_install = _list_tools_to_install()
 
-    plugins = Command.check_output(cmd=["asdf", "plugin", "list"]).split("\n")
-    is_installed = _list_installed_expected_tools(plugins, exp_tools)
+    _print_tool_version_overview(glob_tools, tools_to_install)
 
-    _print_tool_version_overview(exp_tools, glob_tools, is_installed)
-
-    to_install = [tool for tool, installed in is_installed.items() if not installed]
-
-    if not to_install:
+    if not tools_to_install:
         print("All tool versions are up-to-date.")
         return
 
-    install = typer.confirm(
-        "Do you want to install the required but missing tool versions?", default=True, abort=setup_required
+    install_tools = typer.confirm(
+        "Do you want to add the missing tools?",
+        default=True,
+        abort=setup_required
     )
 
-    if not install:
+    if not install_tools:
         return
 
-    plugins_to_add = [tool for tool in to_install if tool not in glob_tools]
-    if plugins_to_add:
-        _add_required_plugins(plugins_to_add)
-
-    _install_required_tools(exp_tools, to_install)
+    _install_tools(tools_to_install)

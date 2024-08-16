@@ -1,0 +1,11 @@
+namespace: monitoring
+
+configMapGenerator:
+  - name: grafana-dashboards
+    files:
+      - overview.json
+      - resources_cluster.json
+      - resources_namespace.json
+      - resources_pod.json
+      - system.json
+      - logs_insights.json

@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: grafana
+  name: grafana
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+      annotations:
+        fluentbit.io/parser-log-collector: grafana
+        fluentbit.io/exclude-grafana: "true"
+        fluentbit.io/rename-log-collector: grafana
+    spec:
+      securityContext:
+        fsGroup: 472
+        supplementalGroups:
+          - 0
+      containers:
+        - name: grafana
+          image: schulzsystemtechnik/iiot-app-grafana:10.1.5-1.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+              name: http-grafana
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /robots.txt
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            successThreshold: 1
+            timeoutSeconds: 2
+          livenessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            tcpSocket:
+              port: 3000
+            timeoutSeconds: 1
+          resources:
+            limits:
+              memory: 250Mi
+              cpu: 500m
+            requests:
+              memory: 150Mi
+              cpu: 40m
+          volumeMounts:
+            - mountPath: /etc/grafana
+              name: provisioning-config
+            - mountPath: /etc/grafana/provisioning/datasources
+              name: provisioning-datasources
+            - mountPath: /etc/grafana/provisioning/dashboards
+              name: provisioning-dashboards
+            - mountPath: /monitoring-dashboards/
+              name: dashboards
+            - mountPath: /etc/grafana/provisioning/alerting
+              name: provisioning-alerting
+            - mountPath: /var/log/grafana
+              name: varlog
+        - name: log-collector
+          image: busybox:1.36
+          args: [/bin/sh, -c, "tail -n+1 -F /var/log/grafana.log"]
+          volumeMounts:
+            - name: varlog
+              mountPath: /var/log
+          resources:
+            limits:
+              memory: "10Mi"
+              cpu: "1m"
+            requests:
+              memory: "1Mi"
+              cpu: "0.1m"
+      volumes:
+        - name: provisioning-config
+          configMap:
+            name: grafana-provisioning-config
+        - name: provisioning-dashboards
+          configMap:
+            name: grafana-provisioning-dashboards
+        - name: dashboards
+          configMap:
+            name: grafana-dashboards
+        - name: provisioning-datasources
+          configMap:
+            name: grafana-provisioning-datasources
+        - name: provisioning-alerting
+          configMap:
+            name: grafana-provisioning-alerting
+        - name: varlog
+          emptyDir: {}

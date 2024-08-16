@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: timestamp-api
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: timestamp-api
+  template:
+    metadata:
+      labels:
+        app: timestamp-api
+    spec:
+      containers:
+        - name: timestamp-api
+          image: schulzsystemtechnik/iiot-app-timestamp-api:1.0.0
+          resources:
+            limits:
+              memory: 10Mi
+              cpu: 5m
+            requests:
+              memory: 2Mi
+              cpu: 0.2m

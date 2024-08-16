@@ -203,8 +203,16 @@ Supported upgrade path: **v2.x.x --> v3.0.0**
     talosctl dashboard
     ```
     - after upgrading the dashboard should show that the `STAGE` is `Running` and `READY` is `True` (it takes ~10 min)
-    - when machine doesn't change in ready state -> Call the Experts :phone:  
-6. check machine status
+    - when machine doesn't change in ready state -> Call the Experts :phone: 
+7. Seal the machine config (the k8s upgrade makes some changes) 
+    ```bash
+    iiotctl machine seal-config
+    ```
+8. Sync the machine config (the k8s upgrade changes some of our values)
+    ```bash
+    iiotctl machine sync
+    ```
+9. check machine status
     ```bash
     iiotctl machine status
     ```
@@ -212,21 +220,21 @@ Supported upgrade path: **v2.x.x --> v3.0.0**
       * continue
     * when anything is :x: :
       * -> Call the Experts :phone:.
-7. commit changes (only sealed machine config should be changed)
+10. commit changes (only sealed machine config should be changed)
     ```bash
     git add machine/ && \
     git commit -m "feat: seal the machine config"
     ```
-8. Push the update branch
+11. Push the update branch
     ```bash
     git push origin update/base-$(yq '._commit' .copier-answers.yml)
     ```
-9. merge the update branch into main
-10. refresh all argo applications (in the argocd ui)
+12. merge the update branch into main
+13. refresh all argo applications (in the argocd ui)
     ```
     iiotctl connect argo
     ```
-11. upgrade finished
+14. upgrade finished
 
 ## Upgrade v1 to v2
 Supported upgrade path: **v1.x.x -->  v1.2.3 --> v2.3.0**

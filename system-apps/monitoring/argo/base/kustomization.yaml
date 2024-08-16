@@ -1,0 +1,5 @@
+resources:
+  - aggregated-metric-exporter/
+  - kube-state-metrics/
+  - namespace/
+  - node-exporter/
