@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: v2.3.2-53-g141e0e5
+_commit: v2.3.2-74-gddc6437
 _src_path: https://github.com/SchulzSystemtechnik/iiot-base-box.git
 additional_system_apps:
 - local_monitoring

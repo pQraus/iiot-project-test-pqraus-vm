@@ -18,7 +18,7 @@ from . import _talos_config as talos_config
 
 
 def _update_talosconfig(ip: str, talosconfig: bytes):
-    """patch together new talosconfig"""
+    """patch update new talosconfig"""
 
     updated_talosconfig: Dict = yaml.safe_load(talosconfig)
     # add the ip address into the talosconfig
@@ -39,6 +39,7 @@ def _update_talosconfig(ip: str, talosconfig: bytes):
 @check.dependency(*DEP_TALOSCTL)
 def bootstrap(
     machine_ip: str,
+    ttl: int,
     out_talosconfig: str,
     out_mc: str,
     dry_run: bool,
@@ -52,14 +53,12 @@ def bootstrap(
     installer_image = load_repo_installer_image_ref(required_extensions=TALOS_INSTALLED_EXTENSIONS)
     print_if(f"Using talos installer image: {installer_image}", verbose)
 
-    initial_mc, talosconfig = talosctl.generate_mc(
-        BOX_NAME, install_image=installer_image
-    )
+    initial_mc, talosconfig = talosctl.generate_mc(BOX_NAME, ttl, install_image=installer_image)
 
     print()
     if out_talosconfig and Path(out_talosconfig).exists() and not force:
         raise TyperAbort(
-            f"Talosconfig ({out_talosconfig}) already exist",
+            f"Talos config ({out_talosconfig}) already exist",
             "Delete the file or run the command with the '--force' flag"
         )
 
@@ -68,13 +67,13 @@ def bootstrap(
             f"Machine config ({out_mc}) already exist", "Delete the file or run the command with the '--force' flag"
         )
 
+    common.print_if("Create an initial machine config with patches ...", verbose)
+    initial_mc = talosctl.patch_mc(initial_mc, patch_files, verbose=verbose)
+
     if out_talosconfig:
         updated_talosconfig = _update_talosconfig(machine_ip, talosconfig)
         with open(out_talosconfig, "w") as f_config:
             f_config.write(updated_talosconfig)
-
-    common.print_if("Create a initial machine config with patches ...", verbose)
-    initial_mc = talosctl.patch_mc(initial_mc, patch_files, verbose=verbose)
 
     if out_mc:
         with open(out_mc, "wb") as f_mc:

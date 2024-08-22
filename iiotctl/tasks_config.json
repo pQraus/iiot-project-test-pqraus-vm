@@ -1,6 +1,6 @@
 {
     "box_name": "test-pqraus-vm",
-    "base_repo_version": "v2.3.2-53-g141e0e5",
+    "base_repo_version": "v2.3.2-74-gddc6437",
     "project_repo": "pQraus/iiot-project-test-pqraus-vm",
     "repo_on_github": true,
     "talos_installed_extensions": [
@@ -15,5 +15,6 @@
     "is_dev_env": true,
     "k8s_version": "1.30.1",
     "container_registries": ["docker", "schulz_registry"],
+    "traefik_entrypoints": ["private"],
     "remote_monitoring": false
 }

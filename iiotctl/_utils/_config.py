@@ -22,6 +22,7 @@ TELEPORT_ENABLED: bool = get_config_entry(TASK_CONFIG, "teleport_enabled")
 TELEPORT_PROXY_URL: str = get_config_entry(TASK_CONFIG, "teleport_proxy_url")
 IS_DEV_ENV: bool = get_config_entry(TASK_CONFIG, "is_dev_env")
 CONTAINER_REGISTRIES: List[str] = get_config_entry(TASK_CONFIG, "container_registries")
+TRAEFIK_ENDPOINTS: List[str] = get_config_entry(TASK_CONFIG, "traefik_entrypoints")
 REMOTE_MONITORING: bool = get_config_entry(TASK_CONFIG, "remote_monitoring")
 
 # read from asdf .tool-versions file

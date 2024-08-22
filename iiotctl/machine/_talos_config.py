@@ -109,7 +109,7 @@ def patch_config(
 
     if generate:
         image_ref = load_repo_installer_image_ref(required_extensions=TALOS_INSTALLED_EXTENSIONS)
-        mc, _ = talosctl.generate_mc(BOX_NAME, install_image=image_ref)
+        mc, _ = talosctl.generate_mc(BOX_NAME, ttl_years=100, install_image=image_ref)
         if not patch_file_pattern:
             patch_files = common.glob_files(REPO_ROOT, *PATCH_LOCATIONS)
     elif fetch:

@@ -13,6 +13,7 @@ app = typer.Typer(name="machine", help="Interact with live machine via establish
 @app.command()
 def bootstrap(
     machine_ip: Annotated[str, typer.Argument(help="IP address of the box which should be bootstrapped")],
+    ttl: Annotated[int, typer.Option("--ttl", help="years box CA certs are valid")] = 100,
     out_mc: Annotated[str, typer.Option("--out-mc", help="output file path for the generated machine config")] = None,
     dry_run: Annotated[bool, typer.Option("--dry-run", "-d", help="bootstrap without applying to the machine")] = False,
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="verbose status messages")] = False,
@@ -40,7 +41,7 @@ def bootstrap(
     >>> iiotctl machine bootstrap 192.168.23.2 --out-mc "mc.json"
     """
 
-    _bootstrap.bootstrap(machine_ip, out_talosconfig, out_mc, dry_run, force, verbose)
+    _bootstrap.bootstrap(machine_ip, ttl, out_talosconfig, out_mc, dry_run, force, verbose)
 
 
 @app.command()
