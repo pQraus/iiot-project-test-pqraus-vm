@@ -1,3 +1,5 @@
+import base64
+import datetime
 import json
 import re
 import subprocess as sp
@@ -8,6 +10,10 @@ from time import sleep
 from typing import Dict, Iterable, List
 
 import yaml
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 
 from ._common import (Command, TyperAbort, parse_kwargs_to_cli_args,
                       patch_json, print_if)
@@ -131,8 +137,8 @@ def get_live_k8s_version(mc: bytes):
     return live_version
 
 
-def generate_mc(cluster_name="CLUSTER_NAME", **talos_args):
-    """generate a machine config with talosctl
+def generate_mc(cluster_name: str, ttl_years: int, **talos_args):
+    """generate a machine config with talosctl + generate and patch in root CAs
 
     Return: machine_config, talosconfig
     """
@@ -151,16 +157,17 @@ def generate_mc(cluster_name="CLUSTER_NAME", **talos_args):
             f"https://{cluster_name}:6443",
         ]
         controlplane_file = tmp_dir / "controlplane.yaml"
-        talosconfig_file = tmp_dir / "talosconfig"
         Command.check_output(base_cmd + additional_talos_args, capture_output=False)
 
         with open(controlplane_file) as file:
             controlplane_mc = yaml.safe_load(file)
 
-        controlplane_mc = bytes(json.dumps(controlplane_mc, indent=2), ENCODING)
+        _patch_mc_with_custom_ca(controlplane_mc, ttl_years, cluster_name)
+        talos_ca = controlplane_mc["machine"]["ca"]["crt"]
+        talos_key = controlplane_mc["machine"]["ca"]["key"]
 
-        with open(talosconfig_file, "rb") as rd:
-            talosconfig = rd.read()
+        controlplane_mc = bytes(json.dumps(controlplane_mc, indent=2), ENCODING)
+        talosconfig = _generate_taloconfig(cluster_name, talos_ca, talos_key)
 
     return controlplane_mc, talosconfig
 
@@ -258,3 +265,164 @@ def upgrade_talos(**talos_args):
     base_cmd = ["talosctl", "upgrade"]
     additional_args = parse_kwargs_to_cli_args(**talos_args)
     Command.check_output(base_cmd + additional_args)
+
+
+def _generate_custom_ca(root_name: str, years_valid: int):
+    """generate CA cert in "special" format for k8s, etcd, k8s aggregator"""
+    root_key = ec.generate_private_key(ec.SECP256R1())
+    root_key_serialized = root_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+
+    options = [x509.NameAttribute(
+        NameOID.ORGANIZATION_NAME, root_name)] if root_name else []
+    subject = issuer = x509.Name(options)
+    root_cert = x509.CertificateBuilder().subject_name(
+        subject
+    ).issuer_name(
+        issuer
+    ).public_key(
+        root_key.public_key()
+    ).serial_number(
+        x509.random_serial_number()
+    ).not_valid_before(
+        datetime.datetime.now(datetime.timezone.utc)
+    ).not_valid_after(
+        datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=years_valid * 365)
+    ).add_extension(
+        x509.KeyUsage(
+            digital_signature=True,
+            content_commitment=False,
+            key_encipherment=False,
+            data_encipherment=False,
+            key_agreement=False,
+            key_cert_sign=True,
+            crl_sign=False,
+            encipher_only=False,
+            decipher_only=False,
+        ),
+        critical=True,
+    ).add_extension(
+        x509.ExtendedKeyUsage(
+            [ExtendedKeyUsageOID.SERVER_AUTH, ExtendedKeyUsageOID.CLIENT_AUTH,]),
+        critical=False
+    ).add_extension(
+        x509.BasicConstraints(ca=True, path_length=None),
+        critical=True,
+    ).add_extension(
+        x509.SubjectKeyIdentifier.from_public_key(root_key.public_key()),
+        critical=False
+    ).sign(root_key, hashes.SHA256())
+
+    root_cert_serialized = root_cert.public_bytes(serialization.Encoding.PEM)
+    b64_cert_str = base64.b64encode(root_cert_serialized).decode()
+    b64_key_str = base64.b64encode(root_key_serialized).decode()
+
+    return b64_cert_str, b64_key_str
+
+
+def _gen_talos_ca(issuer: str, years_valid: int):
+    """generate CA cert and key via talosctl for talos"""
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        cert_file, key_file = root / f"{issuer}.crt", root / f"{issuer}.key"
+        Command.check_output(
+            ["talosctl", "gen", "ca", f"--organization={issuer}", f"--hours={years_valid * 365 * 24}"], cwd=root
+        )
+        with open(cert_file, "rb") as f:
+            cert_str = f.read()
+        with open(key_file, "rb") as f:
+            key_str = f.read()
+
+    b64_cert_str = base64.b64encode(cert_str).decode()
+    b64_key_str = base64.b64encode(key_str).decode()
+
+    return b64_cert_str, b64_key_str
+
+
+def _patch_mc_with_custom_ca(mc_dict: dict, years_valid: int, issuer: str):
+    """create CA certs and key and patch them into given mc"""
+    # generate talos ca cert, key
+    b64_talos_cert_str, b64_talos_key_str = _gen_talos_ca(issuer, years_valid)
+    # generate k8s ca cert, key
+    b64_k8s_cert_str, b64_k8s_key_str = _generate_custom_ca("kubernetes", years_valid)
+    # generate etcd ca cert, key
+    b64_etcd_cert_str, b64_etcd_key_str = _generate_custom_ca("etcd", years_valid)
+    # generate k8s-aggregator ca cert, key
+    b64_k8s_agg_cert_str, b64_k8s_agg_key_str = _generate_custom_ca("", years_valid)
+
+    mc_dict["cluster"]["ca"]["crt"] = b64_k8s_cert_str
+    mc_dict["cluster"]["ca"]["key"] = b64_k8s_key_str
+    mc_dict["cluster"]["aggregatorCA"]["crt"] = b64_k8s_agg_cert_str
+    mc_dict["cluster"]["aggregatorCA"]["key"] = b64_k8s_agg_key_str
+    mc_dict["cluster"]["etcd"]["ca"]["crt"] = b64_etcd_cert_str
+    mc_dict["cluster"]["etcd"]["ca"]["key"] = b64_etcd_key_str
+    mc_dict["machine"]["ca"]["crt"] = b64_talos_cert_str
+    mc_dict["machine"]["ca"]["key"] = b64_talos_key_str
+
+
+def _generate_taloconfig(context_name: str, ca_b64: str, ca_key_b64: str):
+    client_cert_hours_valid = 10 * 365 * 24
+    with tempfile.TemporaryDirectory() as td:
+        # copy ca, key, in dir
+        tmp_dir = Path(td)
+        ca_file = tmp_dir / "talos.crt"
+        with open(ca_file, "wb") as f:
+            f.write(base64.b64decode(ca_b64))
+        key_file = tmp_dir / "talos.key"
+        with open(key_file, "wb") as f:
+            f.write(base64.b64decode(ca_key_b64))
+
+        sp.check_output(["talosctl", "gen", "key", "--name=client"], cwd=tmp_dir)
+        sp.check_output(
+            ["talosctl", "gen", "csr", "--key=client.key", "--ip", "127.0.0.1"],
+            cwd=tmp_dir,
+        )
+        sp.check_output(
+            [
+                "talosctl",
+                "gen",
+                "crt",
+                "--ca",
+                "talos",
+                "--csr=client.csr",
+                "--name",
+                "client",
+                "--hours",
+                str(client_cert_hours_valid),
+            ],
+            cwd=tmp_dir,
+        )
+        talosconfig_file = tmp_dir / "talosconfig"
+        sp.check_output(
+            [
+                "talosctl",
+                "--talosconfig",
+                talosconfig_file,
+                "config",
+                "add",
+                "--ca",
+                ca_file,
+                "--key",
+                "client.key",
+                "--crt",
+                "client.crt",
+                context_name,
+            ],
+            cwd=tmp_dir,
+        )
+        sp.check_output(
+            [
+                "talosctl",
+                "--talosconfig",
+                talosconfig_file,
+                "config",
+                "context",
+                context_name,
+            ],
+            cwd=tmp_dir,
+        )
+        with open(talosconfig_file, "rb") as file:
+            return file.read()

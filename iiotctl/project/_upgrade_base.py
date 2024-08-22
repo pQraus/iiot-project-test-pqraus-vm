@@ -2,33 +2,59 @@ import re
 from typing import List
 
 import typer
+from rich import print
 
 from .._utils._common import Command, TyperAbort
 from .._utils._config import (BASE_REPO_VERSION, BOX_NAME, K8S_VERSION,
-                              TALOS_VERSION)
+                              TALOS_VERSION, TELEPORT_ENABLED,
+                              TRAEFIK_ENDPOINTS)
 from .._utils._constants import REPO_README
 from ._render_manifests import render_argo_manifests
 from ._setup_tools import setup_tools
 
 _README_HEADER = f"# iiot-project-{BOX_NAME}"
-_BADGE_DATA = {
-    "Base": {
-        "version": BASE_REPO_VERSION.removeprefix("v").replace("-", "--"),
-        "color": "orange"
-    },
-    "Talos": {
-        "version": TALOS_VERSION,
-        "color": "red"
-    },
-    "Kubernetes": {
-        "version": K8S_VERSION,
-        "color": "blue"
-    }
-}
-_BADGE_TXT = "![Static Badge](https://img.shields.io/badge/v{version}-{color}?label={label})"
-_BADGES = "\n".join(
-    [_BADGE_TXT.format(label=k, version=v["version"], color=v["color"]) for k, v in _BADGE_DATA.items()]
-)
+
+
+class _StaticBadge:
+    badge_text = "![Static Badge](https://img.shields.io/badge/{content}-{color}?label={label})"
+
+    def __init__(self, content: str, color: str, label: str, link=None):
+        self.content = content.replace("-", "--")
+        self.color = color
+        self.label = label
+        self.link = link
+
+    def __str__(self) -> str:
+        rendered_badge = self.badge_text.format(
+            content=self.content,
+            color=self.color,
+            label=self.label
+        )
+        if self.link is None:
+            return rendered_badge
+
+        badge_with_link = f"[{rendered_badge}]({self.link})"
+        return badge_with_link
+
+    def regex_pattern(self) -> str:
+        badge_repr = r"!\[Static Badge\]\(https://img.shields.io/badge/[\w._-]*-[\w._-]*\?label=" + self.label + r"\)"
+        line_ending = r"[\n]{0,1}"
+        if self.link is None:
+            return badge_repr + line_ending
+        badge_link_repr = r"[" + badge_repr + r"\]\(.*\)" + line_ending
+        return badge_link_repr
+
+
+def _create_badges():
+    badges = [
+        _StaticBadge(BASE_REPO_VERSION, "orange", "Base"),
+        _StaticBadge("v" + TALOS_VERSION, "red", "Talos"),
+        _StaticBadge("v" + K8S_VERSION, "blue", "Kubernetes"),
+    ]
+    if TELEPORT_ENABLED and "private" in TRAEFIK_ENDPOINTS:
+        teleport_url = f"https://private-{BOX_NAME}.prod.teleport.schulzdevcloud.com/argocd"
+        badges.append(_StaticBadge("via_Teleport", "purple", "ArgoCD", teleport_url))
+    return badges
 
 
 def update_repo_readme():
@@ -39,24 +65,27 @@ def update_repo_readme():
         file.seek(0)
 
         # remove former static badges with old versions
-        for label, data in _BADGE_DATA.items():
-            badge_version_pattern = r"!\[Static Badge\]\(https://img.shields.io/badge/v[\w.-]+"
-            badge_version_pattern += r"\-" + data['color'] + r"\?label=" + label + r"\)[\n]{0,1}"
-            match = re.search(badge_version_pattern, content)
+        # add badge string to the badge section
+        badge_strs = []
+        for badge in _create_badges():
+            match = re.search(badge.regex_pattern(), content)
             if match:
-                content = "".join(content.split(match.group(0)))
+                part1, part2 = content.split(match.group(0))
+                content = "".join((part1.rstrip(), "\n\n", part2.lstrip()))
+            badge_strs.append(str(badge))
 
-        headers: List[str] = re.findall(r"^# [a-zA-Z0-9]+[\w.-]+[\n]*", content, re.MULTILINE)
+        badge_section = "\n".join(badge_strs)
+        headers: List[str] = re.findall(r"(?<!#)#(?!#) .*?\n", content, re.MULTILINE)
 
         if headers:
-            # add badges underneath first main markdown header
-            new_badges = headers[0].rstrip() + "\n\n" + _BADGES + "\n\n"
-            content = content.replace(headers[0], new_badges, 1)
+            before, header, after = content.partition(headers[0])
+            new_content = before + header.rstrip() + "\n\n" + badge_section
+            new_content += "\n" if after.strip() == "" else "\n\n" + after.lstrip()
         else:
-            # add main markdown header with project repo name + badges
-            content = _README_HEADER + "\n\n" + _BADGES + "\n\n" + content.lstrip()
+            badge_section = _README_HEADER + "\n\n" + badge_section
+            new_content = badge_section + "\n\n" + content
 
-        file.write(content)
+        file.write(new_content)
         file.truncate()
 
 
@@ -64,10 +93,11 @@ def create_repo_readme():
     """create repo readme with repo name + important repo tool versions as static badges"""
     with open(REPO_README, "x") as file:
         file.write(_README_HEADER + "\n\n")
-        file.write(_BADGES)
+        for badge in _create_badges():
+            file.write(str(badge) + "\n")
 
 
-def _check_if_uncommited_changes():
+def _has_uncommitted_changes():
     return bool(Command.check_output(["git", "status", "-s"]))
 
 
@@ -88,7 +118,8 @@ def _create_update_branch():
     if on_main:
         update_branch = f"update/base-{BASE_REPO_VERSION}"
         if update_branch in Command.check_output(["git", "branch"]):
-            raise TyperAbort(f"Update branch '{update_branch}' already exists.")
+            raise TyperAbort(
+                f"Update branch '{update_branch}' already exists.")
 
         print(f"Create update branch '{update_branch}' on 'main'.")
         Command.check_output(["git", "checkout", "main"])
@@ -108,7 +139,7 @@ def upgrade(set_up_tooling: bool, render_manifests: bool, render_readme: bool, c
             print("Initialize README.md.")
             create_repo_readme()
 
-    if create_update_branch and _check_if_uncommited_changes():
+    if create_update_branch and _has_uncommitted_changes():
         Command.check_output(["git", "add", "."])
         Command.check_output(["git", "commit", "-m", "feat: update base repo version"])
 
@@ -118,6 +149,10 @@ def upgrade(set_up_tooling: bool, render_manifests: bool, render_readme: bool, c
     if render_manifests:
         typer.secho("\nRe-render all argo manifests:\n", bold=True)
         render_argo_manifests(["*"])
-        if create_update_branch and _check_if_uncommited_changes():
+        if create_update_branch and _has_uncommitted_changes():
             Command.check_output(["git", "add", "."])
             Command.check_output(["git", "commit", "-m", "feat: update argo manifests"])
+
+    typer.secho(
+        "\nNow execute 'iiotctl machine status/sync' to ensure everything is in-sync with the machine.", fg="green"
+    )
