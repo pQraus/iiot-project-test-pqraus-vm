@@ -7,6 +7,7 @@ configMapGenerator:
       - inputs.conf
       - filters.conf
       - outputs.conf
-      - parsers.conf
+      - internal_parsers.conf
+      - public_parsers.conf
       - custom_parsers.conf
       - lua-scripts.lua

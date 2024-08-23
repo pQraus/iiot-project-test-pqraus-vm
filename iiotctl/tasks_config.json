@@ -1,6 +1,6 @@
 {
     "box_name": "test-pqraus-vm",
-    "base_repo_version": "v2.3.2-74-gddc6437",
+    "base_repo_version": "v2.3.2-124-gf05e8a5",
     "project_repo": "pQraus/iiot-project-test-pqraus-vm",
     "repo_on_github": true,
     "talos_installed_extensions": [

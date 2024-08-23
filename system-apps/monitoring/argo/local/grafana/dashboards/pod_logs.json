@@ -1,0 +1,900 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "iiot",
+        "overview"
+      ],
+      "targetBlank": false,
+      "title": "New link",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    },
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "iiot",
+        "resources"
+      ],
+      "targetBlank": false,
+      "title": "New link",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    },
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "iiot",
+        "div"
+      ],
+      "targetBlank": false,
+      "title": "New link",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    }
+  ],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 33,
+      "panels": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-datasource"
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 24,
+            "x": 0,
+            "y": 1
+          },
+          "id": 34,
+          "options": {
+            "code": {
+              "language": "plaintext",
+              "showLineNumbers": false,
+              "showMiniMap": false
+            },
+            "content": "### Setting up your pods\nTo set up your pods, read [this](https://github.com/SchulzSystemtechnik/iiot-base-box/blob/v2.3.2-124-gf05e8a5/docs/system-apps/monitoring/monitoring.md#manifest-configuration)\n\n### Filtering\nTo filter the logs according to your needs, use the filter at the top of the dashboard. First select your namespace, then your pod, and so on. If you are happy with your filters, use the time range to define, which exact logs you want to see. Keep in mind, that only the last 500 logs are shown. You can also use the diagrams or the graph to filter the logs.",
+            "mode": "markdown"
+          },
+          "pluginVersion": "11.1.0",
+          "type": "text"
+        }
+      ],
+      "title": "How To",
+      "type": "row"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
+      "id": 24,
+      "panels": [],
+      "title": "Logs",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-datasource"
+      },
+      "gridPos": {
+        "h": 16,
+        "w": 24,
+        "x": 0,
+        "y": 2
+      },
+      "id": 25,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Ascending",
+        "wrapLogMessage": false
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-datasource"
+          },
+          "editorMode": "code",
+          "expr": "{_job=\"fluent-bit-pod-logs\", _namespace=~\"$namespace\", _pod=~\"$pod\", _container=~\"$container\", _level=~\"$level\"}\r\n|= \"$line_filter\"\r\n| json\r\n| line_format `{{if count \"$columns\" \"level\"}}- {{printf \"%-8.8s\" ._level}} {{end}}{{if count \"$columns\" \"namespace\"}}- {{printf \"%-14.14s\" ._namespace}} {{end}}{{if count \"$columns\" \"pod\"}}- {{printf \"%-50.50s\" ._pod}} {{end}}- {{if .template_parsed}}{{.template_parsed}}{{else if .log}}{{.log}}{{else if .msg}}{{.msg}}{{else}}{{__line__}}{{end}}`\r\n| drop _job",
+          "hide": false,
+          "maxLines": 1000,
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Logs (max 1000 lines)",
+      "transformations": [
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "Time"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "logs"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-datasource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "links": [
+            {
+              "title": "",
+              "url": "d/pod-logs/logs-insights?var-level=${__field.labels._level}&${namespace:queryparam}&${pod:queryparam}&${container:queryparam}&${line_filter:queryparam}&${extra_filter:queryparam}&${__url_time_range}"
+            }
+          ],
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "debug"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "info"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "warning"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "error"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "unknown"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "critical"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "purple",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 7,
+        "x": 0,
+        "y": 18
+      },
+      "id": 31,
+      "interval": "60s",
+      "options": {
+        "displayLabels": [
+          "name"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "asc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum(\r\n    count_over_time(\r\n        {_job=\"fluent-bit-pod-logs\", _namespace=~\"$namespace\", _pod=~\"$pod\", _container=~\"$container\", _level=~\"$level\"}\r\n        |= \"$line_filter\"\r\n        | json\r\n        [$__interval]\r\n    )\r\n) by (_level)",
+          "hide": false,
+          "legendFormat": "{{_level}}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Logs per level",
+      "transformations": [
+        {
+          "id": "limit",
+          "options": {
+            "limitField": 500
+          }
+        }
+      ],
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-datasource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "links": [
+            {
+              "title": "",
+              "url": "d/pod-logs/logs-insights?var-pod=${__field.labels._pod}&${namespace:queryparam}&${container:queryparam}&${line_filter:queryparam}&${extra_filter:queryparam}&${level:queryparam}&${__url_time_range}"
+            }
+          ],
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 11,
+        "x": 7,
+        "y": 18
+      },
+      "id": 32,
+      "interval": "60s",
+      "options": {
+        "displayLabels": [
+          "name"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "asc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum(\r\n    count_over_time(\r\n        {_job=\"fluent-bit-pod-logs\", _namespace=~\"$namespace\", _pod=~\"$pod\", _container=~\"$container\", _level=~\"$level\"}\r\n        |= \"$line_filter\"\r\n        | json\r\n        [$__interval]\r\n    )\r\n) by (_pod)",
+          "hide": false,
+          "legendFormat": "{{_pod}}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Logs per pod",
+      "type": "piechart"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 27
+      },
+      "id": 13,
+      "panels": [],
+      "title": "Additional statistics",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-datasource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 100,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 0,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "debug"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "semi-dark-blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "info"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "semi-dark-green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "warning"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "semi-dark-orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "error"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "semi-dark-red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "unknown"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "critical"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "purple",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
+      "id": 5,
+      "interval": "1m",
+      "maxDataPoints": 144,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum(\r\n    count_over_time(\r\n        {_job=\"fluent-bit-pod-logs\", _namespace=~\"$namespace\", _pod=~\"$pod\", _container=~\"$container\", _level=~\"$level\"}\r\n        |= \"$line_filter\"\r\n        | json\r\n        [$__interval]\r\n    )\r\n) by (_level)",
+          "hide": false,
+          "legendFormat": "{{_level}}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Logs per $__interval",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "",
+  "schemaVersion": 39,
+  "tags": [
+    "iiot",
+    "div",
+    "pod"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "description": "Show or hides the columns 'level', 'namespace' & 'pod' in the log panel. Useful when you only search for one level, namespace or pod and find the column redundant",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Columns",
+        "multi": true,
+        "name": "columns",
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "Level",
+            "value": "level"
+          },
+          {
+            "selected": false,
+            "text": "Namespace",
+            "value": "namespace"
+          },
+          {
+            "selected": false,
+            "text": "Pod",
+            "value": "pod"
+          },
+          {
+            "selected": false,
+            "text": "None",
+            "value": "none"
+          }
+        ],
+        "query": "Level : level, Namespace : namespace, Pod : pod, None : none",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "victoriametrics-server"
+        },
+        "definition": "label_values(namespace)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Namespace",
+        "multi": true,
+        "name": "namespace",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(namespace)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "victoriametrics-server"
+        },
+        "definition": "label_values({namespace=~\"$namespace\"},pod)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Pod",
+        "multi": true,
+        "name": "pod",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values({namespace=~\"$namespace\"},pod)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "victoriametrics-server"
+        },
+        "definition": "label_values({namespace=~\"$namespace\", pod=~\"$pod\"},container)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Container",
+        "multi": true,
+        "name": "container",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values({namespace=~\"$namespace\", pod=~\"$pod\"},container)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "hide": 0,
+        "includeAll": true,
+        "label": "Level",
+        "multi": true,
+        "name": "level",
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "critical",
+            "value": "critical"
+          },
+          {
+            "selected": false,
+            "text": "error",
+            "value": "error"
+          },
+          {
+            "selected": false,
+            "text": "warning",
+            "value": "warning"
+          },
+          {
+            "selected": false,
+            "text": "info",
+            "value": "info"
+          },
+          {
+            "selected": false,
+            "text": "debug",
+            "value": "debug"
+          },
+          {
+            "selected": false,
+            "text": "trace",
+            "value": "trace"
+          },
+          {
+            "selected": false,
+            "text": "unknown",
+            "value": "unknown"
+          }
+        ],
+        "query": "critical, error, warning, info, debug, trace, unknown",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "",
+          "value": ""
+        },
+        "description": "This filter uses grep on the underlying json and will therefore search in the extracted labels as well as the message itself. E.g.: searching for 'foo' will find lines like these '{\"foo\":\"bar\",\"msg\":\"Test\"}' as well as lines like these '{\"logger\":\"test\",\"msg\":\"Test foo\"}'",
+        "hide": 0,
+        "label": "Line filter",
+        "name": "line_filter",
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "query": "",
+        "skipUrlSync": false,
+        "type": "textbox"
+      },
+      {
+        "datasource": {
+          "type": "loki",
+          "uid": "loki-datasource"
+        },
+        "description": "Use this filter for any extra fields provided in the log message. Just enter the field and value and select the compare method.",
+        "filters": [],
+        "hide": 0,
+        "label": "Extra filter",
+        "name": "extra_filter",
+        "skipUrlSync": false,
+        "type": "adhoc"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-3h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "30s",
+      "1m",
+      "5m",
+      "10m"
+    ]
+  },
+  "timezone": "",
+  "title": "Pod Logs",
+  "uid": "pod-logs",
+  "version": 1,
+  "weekStart": ""
+}

@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kube-summary-exporter
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kube-summary-exporter
+  template:
+    metadata:
+      name: kube-summary-exporter
+      labels:
+        app: kube-summary-exporter
+    spec:
+      serviceAccountName: kube-summary-exporter
+      containers:
+        - name: kube-summary-exporter
+          image: quay.io/utilitywarehouse/kube-summary-exporter:v0.4.3
+          ports:
+            - name: tcp
+              containerPort: 9779
+          resources:
+            limits:
+              memory: 40Mi
+              cpu: 1000m
+            requests:
+              memory: 10Mi
+              cpu: 1m

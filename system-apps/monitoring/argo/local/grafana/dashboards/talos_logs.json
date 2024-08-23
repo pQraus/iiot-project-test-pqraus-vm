@@ -100,7 +100,7 @@
         "showLabels": false,
         "showTime": true,
         "sortOrder": "Ascending",
-        "wrapLogMessage": true
+        "wrapLogMessage": false
       },
       "targets": [
         {
@@ -109,11 +109,11 @@
             "uid": "loki-datasource"
           },
           "editorMode": "code",
-          "expr": "{_job=\"fluent-bit-pod-logs\", _namespace=~\"$namespace\", _pod=~\"$pod\", _container=~\"$container\", _level=~\"$level\"}\r\n|= \"$line_filter\"\r\n| json\r\n| line_format `- {{printf \"%-8.8s\" ._level}} - {{printf \"%-14.14s\" ._namespace}} - {{printf \"%-50.50s\" ._pod}} - {{if .template_parsed}}{{.template_parsed}}{{else if .log}}{{.log}}{{else if .msg}}{{.msg}}{{else}}{{__line__}}{{end}}`\r\n| drop _job",
+          "expr": "{_job=\"fluent-bit-talos-logs\", _service=~\"$service\", _level=~\"$level\"}\r\n|= \"$line_filter\"\r\n| json\r\n| line_format `{{if count \"$columns\" \"level\"}}- {{printf \"%-8.8s\" ._level}} {{end}}{{if count \"$columns\" \"service\"}}- {{printf \"%-14.14s\" ._service}} {{end}}- {{if .msg}}{{.msg}}{{else}}{{__line__}}{{end}}`\r\n| drop _job",
           "hide": false,
           "maxLines": 500,
           "queryType": "range",
-          "refId": "B"
+          "refId": "A"
         }
       ],
       "title": "Logs (max 500 lines)",
@@ -148,7 +148,7 @@
           "links": [
             {
               "title": "",
-              "url": "d/cba65f36-3e76-4bc7-b80c-8efbc205e663/logs-insights?var-level=${__field.labels._level}&${namespace:queryparam}&${pod:queryparam}&${container:queryparam}&${line_filter:queryparam}&${extra_filter:queryparam}&${__url_time_range}"
+              "url": "d/talos-logs?var-level=${__field.labels._level}&${service:queryparam}&${line_filter:queryparam}&${extra_filter:queryparam}&${__url_time_range}"
             }
           ],
           "mappings": []
@@ -286,14 +286,14 @@
             "uid": "loki-datasource"
           },
           "editorMode": "code",
-          "expr": "sum(\r\n    count_over_time(\r\n        {_job=\"fluent-bit-pod-logs\", _namespace=~\"$namespace\", _pod=~\"$pod\", _container=~\"$container\", _level=~\"$level\"}\r\n        |= \"$line_filter\"\r\n        | json\r\n        [$__interval]\r\n    )\r\n) by (_level)",
+          "expr": "sum(\r\n    count_over_time(\r\n        {_job=\"fluent-bit-talos-logs\", _service=~\"$service\", _level=~\"$level\"}\r\n        |= \"$line_filter\"\r\n        | json\r\n        [$__interval]\r\n    )\r\n) by (_level)",
           "hide": false,
-          "legendFormat": "{{level}}",
+          "legendFormat": "{{_level}}",
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "Logs volume",
+      "title": "Logs per level",
       "transformations": [
         {
           "id": "limit",
@@ -324,7 +324,7 @@
           "links": [
             {
               "title": "",
-              "url": "d/cba65f36-3e76-4bc7-b80c-8efbc205e663/logs-insights?var-pod=${__field.labels._pod}&${namespace:queryparam}&${container:queryparam}&${line_filter:queryparam}&${extra_filter:queryparam}&${level:queryparam}&${__url_time_range}"
+              "url": "d/talos-logs?var-service=${__field.labels._service}&${line_filter:queryparam}&${extra_filter:queryparam}&${level:queryparam}&${__url_time_range}"
             }
           ],
           "mappings": []
@@ -339,6 +339,7 @@
       },
       "id": 32,
       "interval": "60s",
+      "maxDataPoints": 144,
       "options": {
         "displayLabels": [
           "name"
@@ -372,14 +373,14 @@
             "uid": "loki-datasource"
           },
           "editorMode": "code",
-          "expr": "sum(\r\n    count_over_time(\r\n        {_job=\"fluent-bit-pod-logs\", _namespace=~\"$namespace\", _pod=~\"$pod\", _container=~\"$container\", _level=~\"$level\"}\r\n        |= \"$line_filter\"\r\n        | json\r\n        [$__interval]\r\n    )\r\n) by (_pod)",
+          "expr": "sum(\r\n    count_over_time(\r\n        {_job=\"fluent-bit-talos-logs\", _service=~\"$service\", _level=~\"$level\"}\r\n        |= \"$line_filter\"\r\n        | json\r\n        [$__interval]\r\n    )\r\n) by (_service)",
           "hide": false,
-          "legendFormat": "{{pod}}",
+          "legendFormat": "{{_service}}",
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "Logs volume",
+      "title": "Logs per service",
       "type": "piechart"
     },
     {
@@ -406,6 +407,7 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -442,8 +444,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -571,20 +572,19 @@
             "uid": "loki-datasource"
           },
           "editorMode": "code",
-          "expr": "sum(\r\n    count_over_time(\r\n        {_job=\"fluent-bit-pod-logs\", _namespace=~\"$namespace\", _pod=~\"$pod\", _container=~\"$container\", _level=~\"$level\"}\r\n        |= \"$line_filter\"\r\n        | json\r\n        [60s]\r\n    )\r\n) by (_level)",
+          "expr": "sum(\r\n    count_over_time(\r\n        {_job=\"fluent-bit-talos-logs\", _service=~\"$service\", _level=~\"$level\"}\r\n        |= \"$line_filter\"\r\n        | json\r\n        [$__interval]\r\n    )\r\n) by (_level)",
           "hide": false,
           "legendFormat": "{{level}}",
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "Logs per minute",
+      "title": "Logs per $__interval",
       "type": "timeseries"
     }
   ],
   "refresh": "",
-  "schemaVersion": 38,
-  "style": "dark",
+  "schemaVersion": 39,
   "tags": [
     "iiot",
     "div"
@@ -592,7 +592,6 @@
   "templating": {
     "list": [
       {
-        "allValue": ".*",
         "current": {
           "selected": true,
           "text": [
@@ -602,28 +601,38 @@
             "$__all"
           ]
         },
-        "datasource": {
-          "type": "loki",
-          "uid": "loki-datasource"
-        },
-        "definition": "",
+        "description": "Show or hides the columns 'level' & 'service' in the log panel. Useful when you only search for one level or service and find the column redundant",
         "hide": 0,
         "includeAll": true,
-        "label": "Namespace",
+        "label": "Columns",
         "multi": true,
-        "name": "namespace",
-        "options": [],
-        "query": {
-          "label": "_namespace",
-          "refId": "LokiVariableQueryEditor-VariableQuery",
-          "stream": "{_job=\"fluent-bit-pod-logs\"}",
-          "type": 1
-        },
-        "refresh": 2,
-        "regex": "",
+        "name": "columns",
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "Level",
+            "value": "level"
+          },
+          {
+            "selected": false,
+            "text": "Service",
+            "value": "service"
+          },
+          {
+            "selected": false,
+            "text": "None",
+            "value": "none"
+          }
+        ],
+        "query": "Level : level, Service : service, None : none",
+        "queryValue": "",
         "skipUrlSync": false,
-        "sort": 0,
-        "type": "query"
+        "type": "custom"
       },
       {
         "allValue": ".*",
@@ -643,24 +652,23 @@
         "definition": "",
         "hide": 0,
         "includeAll": true,
-        "label": "Pod",
+        "label": "Service",
         "multi": true,
-        "name": "pod",
+        "name": "service",
         "options": [],
         "query": {
-          "label": "_pod",
+          "label": "_service",
           "refId": "LokiVariableQueryEditor-VariableQuery",
-          "stream": "{_job=\"fluent-bit-pod-logs\", _namespace=~\"$namespace\"}",
+          "stream": "{_job=\"fluent-bit-talos-logs\"}",
           "type": 1
         },
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
-        "sort": 0,
+        "sort": 1,
         "type": "query"
       },
       {
-        "allValue": ".*",
         "current": {
           "selected": true,
           "text": [
@@ -670,62 +678,57 @@
             "$__all"
           ]
         },
-        "datasource": {
-          "type": "loki",
-          "uid": "loki-datasource"
-        },
-        "definition": "",
-        "hide": 0,
-        "includeAll": true,
-        "label": "Container",
-        "multi": true,
-        "name": "container",
-        "options": [],
-        "query": {
-          "label": "_container",
-          "refId": "LokiVariableQueryEditor-VariableQuery",
-          "stream": "{_job=\"fluent-bit-pod-logs\", _namespace=~\"$namespace\", _pod=~\"$pod\"}",
-          "type": 1
-        },
-        "refresh": 2,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
-        "type": "query"
-      },
-      {
-        "allValue": ".*",
-        "current": {
-          "selected": true,
-          "text": [
-            "All"
-          ],
-          "value": [
-            "$__all"
-          ]
-        },
-        "datasource": {
-          "type": "loki",
-          "uid": "loki-datasource"
-        },
-        "definition": "",
         "hide": 0,
         "includeAll": true,
         "label": "Level",
         "multi": true,
         "name": "level",
-        "options": [],
-        "query": {
-          "label": "_level",
-          "refId": "LokiVariableQueryEditor-VariableQuery",
-          "stream": "{_job=\"fluent-bit-pod-logs\", _namespace=~\"$namespace\", _pod=~\"$pod\", _container=~\"$container\"}",
-          "type": 1
-        },
-        "refresh": 2,
-        "regex": "",
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "critical",
+            "value": "critical"
+          },
+          {
+            "selected": false,
+            "text": "error",
+            "value": "error"
+          },
+          {
+            "selected": false,
+            "text": "warning",
+            "value": "warning"
+          },
+          {
+            "selected": false,
+            "text": "info",
+            "value": "info"
+          },
+          {
+            "selected": false,
+            "text": "debug",
+            "value": "debug"
+          },
+          {
+            "selected": false,
+            "text": "trace",
+            "value": "trace"
+          },
+          {
+            "selected": false,
+            "text": "unknown",
+            "value": "unknown"
+          }
+        ],
+        "query": "critical, error, warning, info, debug, trace, unknown",
+        "queryValue": "",
         "skipUrlSync": false,
-        "sort": 0,
-        "type": "query"
+        "type": "custom"
       },
       {
         "current": {
@@ -753,6 +756,7 @@
           "type": "loki",
           "uid": "loki-datasource"
         },
+        "description": "Use this filter for any extra fields provided in the log message. Just enter the field and value and select the compare method.",
         "filters": [],
         "hide": 0,
         "label": "Extra filter",
@@ -763,20 +767,20 @@
     ]
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-3h",
     "to": "now"
   },
   "timepicker": {
     "refresh_intervals": [
-      "10s",
       "30s",
       "1m",
-      "5m"
+      "5m",
+      "10m"
     ]
   },
   "timezone": "",
-  "title": "Logs Insights",
-  "uid": "cba65f36-3e76-4bc7-b80c-8efbc205e663",
-  "version": 90,
+  "title": "Talos Logs",
+  "uid": "talos-logs",
+  "version": 1,
   "weekStart": ""
 }

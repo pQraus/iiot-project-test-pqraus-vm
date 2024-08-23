@@ -4,7 +4,7 @@ metadata:
   labels:
     app.kubernetes.io/component: exporter
     app.kubernetes.io/name: kube-state-metrics
-    app.kubernetes.io/version: 2.9.2
+    app.kubernetes.io/version: 2.12.0
   name: kube-state-metrics
   namespace: kube-system
 spec:
@@ -17,14 +17,14 @@ spec:
       labels:
         app.kubernetes.io/component: exporter
         app.kubernetes.io/name: kube-state-metrics
-        app.kubernetes.io/version: 2.9.2
+        app.kubernetes.io/version: 2.12.0
     spec:
       automountServiceAccountToken: true
       containers:
-        - image: registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.10.0
+        - image: registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.12.0
           livenessProbe:
             httpGet:
-              path: /healthz
+              path: /livez
               port: 8080
             initialDelaySeconds: 5
             timeoutSeconds: 5
@@ -37,13 +37,13 @@ spec:
           resources:
             limits:
               memory: 100Mi
-              cpu: 50m
+              cpu: 100m
             requests:
-              memory: 40Mi
-              cpu: 10m
+              memory: 20Mi
+              cpu: 2m
           readinessProbe:
             httpGet:
-              path: /
+              path: /metrics
               port: 8081
             initialDelaySeconds: 5
             timeoutSeconds: 5

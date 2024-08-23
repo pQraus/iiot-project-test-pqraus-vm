@@ -17,8 +17,8 @@ spec:
           image: schulzsystemtechnik/iiot-app-timestamp-api:1.0.0
           resources:
             limits:
-              memory: 10Mi
-              cpu: 5m
+              memory: 5Mi
+              cpu: 100m
             requests:
-              memory: 2Mi
-              cpu: 0.2m
+              memory: 1Mi
+              cpu: 0.1m
