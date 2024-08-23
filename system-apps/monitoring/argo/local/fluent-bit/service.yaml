@@ -4,11 +4,20 @@ metadata:
   name: fluent-bit
   namespace: monitoring
 spec:
+  clusterIP: 10.96.0.80
   ports:
     - name: http
       port: 2020
       protocol: TCP
       targetPort: http
+    - name: talos-services
+      port: 5000
+      protocol: TCP
+      targetPort: talos-services
+    - name: talos-kernel
+      port: 6000
+      protocol: TCP
+      targetPort: talos-kernel
   selector:
     app: fluent-bit
   type: ClusterIP

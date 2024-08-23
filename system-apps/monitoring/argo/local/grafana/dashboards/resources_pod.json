@@ -64,6 +64,22 @@
       "tooltip": "",
       "type": "dashboards",
       "url": ""
+    },
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "iiot",
+        "resources",
+        "pvc"
+      ],
+      "targetBlank": false,
+      "title": "New link",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
     }
   ],
   "liveNow": false,
@@ -121,6 +137,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -128,10 +145,11 @@
           "fields": "",
           "values": false
         },
+        "showPercentChange": false,
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "10.2.2",
+      "pluginVersion": "11.1.0",
       "targets": [
         {
           "datasource": {
@@ -204,6 +222,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -211,10 +230,11 @@
           "fields": "/^owner$/",
           "values": false
         },
+        "showPercentChange": false,
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "10.2.2",
+      "pluginVersion": "11.1.0",
       "targets": [
         {
           "datasource": {
@@ -323,6 +343,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -330,10 +351,11 @@
           "fields": "/^phase$/",
           "values": false
         },
+        "showPercentChange": false,
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "10.2.2",
+      "pluginVersion": "11.1.0",
       "targets": [
         {
           "datasource": {
@@ -757,7 +779,7 @@
         "showHeader": true,
         "sortBy": []
       },
-      "pluginVersion": "10.2.2",
+      "pluginVersion": "11.1.0",
       "targets": [
         {
           "datasource": {
@@ -1028,8 +1050,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "text",
-                "value": null
+                "color": "text"
               }
             ]
           }
@@ -1297,8 +1318,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1417,8 +1437,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1487,8 +1506,8 @@
       "type": "timeseries"
     }
   ],
-  "refresh": "30s",
-  "schemaVersion": 38,
+  "refresh": "1m",
+  "schemaVersion": 39,
   "tags": [
     "iiot",
     "resources"
@@ -1523,9 +1542,9 @@
       },
       {
         "current": {
-          "selected": true,
-          "text": "",
-          "value": ""
+          "selected": false,
+          "text": "logfmt-logs2",
+          "value": "logfmt-logs2"
         },
         "datasource": {
           "type": "prometheus",
@@ -1614,8 +1633,8 @@
       {
         "current": {
           "selected": false,
-          "text": "1700657400",
-          "value": "1700657400"
+          "text": "1721226189",
+          "value": "1721226189"
         },
         "datasource": {
           "type": "yesoreyeram-infinity-datasource",
@@ -1683,20 +1702,20 @@
     ]
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-3h",
     "to": "now"
   },
   "timepicker": {
     "refresh_intervals": [
-      "10s",
       "30s",
       "1m",
-      "5m"
+      "5m",
+      "10m"
     ]
   },
   "timezone": "",
   "title": "Resources (Pod)",
-  "uid": "d5de2f0c-ec9f-4b74-ac4a-aabf2786cce7",
+  "uid": "resources-pod",
   "version": 1,
   "weekStart": ""
 }

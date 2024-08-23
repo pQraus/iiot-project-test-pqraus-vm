@@ -12,11 +12,11 @@ spec:
       labels:
         app: loki
       annotations:
-        log-format: json
+        fluentbit.io/parser: loki
     spec:
       containers:
         - name: loki
-          image: grafana/loki:2.9.2
+          image: grafana/loki:2.9.8
           args:
             - -config.file=/etc/loki/config.yaml
             - -log.format=json
@@ -26,7 +26,7 @@ spec:
               cpu: 250m
             requests:
               memory: 200Mi
-              cpu: 20m
+              cpu: 10m
           volumeMounts:
             - name: config
               mountPath: /etc/loki

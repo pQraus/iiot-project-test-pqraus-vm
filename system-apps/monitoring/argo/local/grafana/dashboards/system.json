@@ -223,7 +223,7 @@
               }
             ]
           },
-          "unit": "decbytes"
+          "unit": "bytes"
         },
         "overrides": [
           {
@@ -398,7 +398,7 @@
               }
             ]
           },
-          "unit": "decbytes"
+          "unit": "bytes"
         },
         "overrides": [
           {
@@ -462,7 +462,7 @@
             "uid": "victoriametrics-server"
           },
           "editorMode": "code",
-          "expr": "avg_over_time(\r\n    (\r\n        max(node_filesystem_size_bytes{job=\"aggregated_metric_exporter\"})\r\n        -\r\n        max(node_filesystem_avail_bytes{job=\"aggregated_metric_exporter\"})\r\n    )[$average]\r\n)",
+          "expr": "avg_over_time(\r\n    (\r\n        max(node_filesystem_size_bytes{job=\"node_exporter\", mountpoint=\"/var\"})\r\n        -\r\n        max(node_filesystem_avail_bytes{job=\"node_exporter\", mountpoint=\"/var\"})\r\n    )[$average]\r\n)",
           "hide": false,
           "instant": false,
           "legendFormat": "Used disk space {{device}}",
@@ -629,7 +629,6 @@
         }
       ],
       "title": "CPU usage (highest $process_topk)",
-      "transformations": [],
       "type": "timeseries"
     },
     {
@@ -752,8 +751,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -792,7 +790,7 @@
             "properties": [
               {
                 "id": "unit",
-                "value": "decbytes"
+                "value": "bytes"
               },
               {
                 "id": "custom.width",
@@ -844,7 +842,7 @@
             "properties": [
               {
                 "id": "unit",
-                "value": "decbytes"
+                "value": "bytes"
               },
               {
                 "id": "custom.width",
@@ -1057,8 +1055,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1107,7 +1104,6 @@
         "y": 34
       },
       "id": 26,
-      "links": [],
       "options": {
         "legend": {
           "calcs": [],
@@ -1168,12 +1164,11 @@
         }
       ],
       "title": "Network Usage",
-      "transformations": [],
       "type": "timeseries"
     }
   ],
-  "refresh": "30s",
-  "schemaVersion": 38,
+  "refresh": "1m",
+  "schemaVersion": 39,
   "tags": [
     "iiot",
     "div"
@@ -1334,20 +1329,20 @@
     ]
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-3h",
     "to": "now"
   },
   "timepicker": {
     "refresh_intervals": [
-      "10s",
       "30s",
       "1m",
-      "5m"
+      "5m",
+      "10m"
     ]
   },
   "timezone": "",
   "title": "System",
-  "uid": "c27370a0-a339-4b01-8ae4-5a51561d0dec",
+  "uid": "system",
   "version": 1,
   "weekStart": ""
 }

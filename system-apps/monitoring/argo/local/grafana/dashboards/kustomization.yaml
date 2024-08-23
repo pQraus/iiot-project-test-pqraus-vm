@@ -1,11 +1,16 @@
 namespace: monitoring
 
 configMapGenerator:
-  - name: grafana-dashboards
+  - name: grafana-dashboards-1
     files:
       - overview.json
+      - pod_logs.json
+      - pvcs.json
       - resources_cluster.json
       - resources_namespace.json
       - resources_pod.json
+
+  - name: grafana-dashboards-2
+    files:
       - system.json
-      - logs_insights.json
+      - talos_logs.json

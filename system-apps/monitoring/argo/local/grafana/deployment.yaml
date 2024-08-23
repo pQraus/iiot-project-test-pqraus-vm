@@ -24,7 +24,7 @@ spec:
           - 0
       containers:
         - name: grafana
-          image: schulzsystemtechnik/iiot-app-grafana:10.1.5-1.1
+          image: schulzsystemtechnik/iiot-app-grafana:11.1.0-1.1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
@@ -51,10 +51,10 @@ spec:
           resources:
             limits:
               memory: 250Mi
-              cpu: 500m
+              cpu: 200m
             requests:
-              memory: 150Mi
-              cpu: 40m
+              memory: 100Mi
+              cpu: 15m
           volumeMounts:
             - mountPath: /etc/grafana
               name: provisioning-config
@@ -76,11 +76,11 @@ spec:
               mountPath: /var/log
           resources:
             limits:
-              memory: "10Mi"
-              cpu: "1m"
+              memory: 5Mi
+              cpu: 1m
             requests:
-              memory: "1Mi"
-              cpu: "0.1m"
+              memory: 0.5Mi
+              cpu: 0.05m
       volumes:
         - name: provisioning-config
           configMap:
@@ -89,8 +89,12 @@ spec:
           configMap:
             name: grafana-provisioning-dashboards
         - name: dashboards
-          configMap:
-            name: grafana-dashboards
+          projected:
+            sources:
+              - configMap:
+                  name: grafana-dashboards-1
+              - configMap:
+                  name: grafana-dashboards-2
         - name: provisioning-datasources
           configMap:
             name: grafana-provisioning-datasources

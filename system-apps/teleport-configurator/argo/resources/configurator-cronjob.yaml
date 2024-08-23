@@ -8,6 +8,9 @@ spec:
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
   jobTemplate:
+    metadata:
+      annotations:
+        fluentbit.io/parser: teleport-configurator
     spec:
       backoffLimit: 1   # just one restart when the pod fails
       template:

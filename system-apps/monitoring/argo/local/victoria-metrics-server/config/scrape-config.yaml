@@ -1,5 +1,6 @@
 global:
-  scrape_interval: 20s
+  scrape_interval: 10s
+  scrape_timeout: 10s
 
 scrape_configs:
   - job_name: node_exporter
@@ -10,7 +11,7 @@ scrape_configs:
         role: service
     metric_relabel_configs:
       - action: keep
-        regex: (node_network_address_info|node_network_speed_bytes|node_network.*bytes_total);(eth\d+|en.+)|(node_memory_MemAvailable_bytes|node_memory_MemTotal_bytes);.*
+        regex: (node_network_address_info|node_network_speed_bytes|node_network.*bytes_total);(eth\d+|en.+)|(node_memory_MemAvailable_bytes|node_memory_MemTotal_bytes|node_filesystem_size_bytes|node_filesystem_avail_bytes);.*
         source_labels:
           - __name__
           - device
@@ -76,5 +77,40 @@ scrape_configs:
     relabel_configs:
       - action: keep
         regex: aggregated-metric-exporter
+        source_labels:
+          - __meta_kubernetes_service_name
+  - job_name: kube_summary_exporter
+    kubernetes_sd_configs:
+      - namespaces:
+          names:
+            - monitoring
+        role: node
+    metric_relabel_configs:
+      - action: keep
+        regex: (kube_summary_pod_ephemeral_storage.*)
+        source_labels:
+          - __name__
+    relabel_configs:
+      - replacement: kube-summary-exporter:9779
+        target_label: __address__
+      - regex: (.+)
+        replacement: /node/${1}
+        source_labels:
+          - __meta_kubernetes_node_name
+        target_label: __metrics_path__
+  - job_name: pvc_exporter
+    kubernetes_sd_configs:
+      - namespaces:
+          names:
+            - monitoring
+        role: service
+    metric_relabel_configs:
+      - action: keep
+        regex: .*
+        source_labels:
+          - __name__
+    relabel_configs:
+      - action: keep
+        regex: pvc-exporter
         source_labels:
           - __meta_kubernetes_service_name

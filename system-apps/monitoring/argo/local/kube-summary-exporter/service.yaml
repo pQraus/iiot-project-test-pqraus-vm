@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: kube-summary-exporter
+  name: kube-summary-exporter
+  namespace: monitoring
+spec:
+  ports:
+    - name: kube-summary-exporter
+      protocol: TCP
+      port: 9779
+      targetPort: 9779
+  selector:
+    app: kube-summary-exporter

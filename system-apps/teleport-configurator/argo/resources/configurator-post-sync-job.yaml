@@ -7,6 +7,9 @@ metadata:
 spec:
   backoffLimit: 1   # just one restart when the pod fails
   template:
+    metadata:
+      annotations:
+        fluentbit.io/parser: teleport-configurator
     spec:
       restartPolicy: Never
       volumes:

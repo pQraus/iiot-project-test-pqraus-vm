@@ -1,3 +1,6 @@
+-- Searches for the key "template" in the log message and parses it.
+-- When "{{ key }}" is found, the key inside the brackets is searched and converted to string
+-- and replaces the placeholder. Tables are formatted via the cjson package.
 function parse_template(tag, timestamp, record)
     local cjson = require "cjson"
 
@@ -6,8 +9,6 @@ function parse_template(tag, timestamp, record)
     end
 
     template_parsed = record["template"]
-
-    new_record = record
 
     for key, value in pairs(record) do
         pattern = string.format("{{ %s }}", key)
@@ -21,12 +22,15 @@ function parse_template(tag, timestamp, record)
         template_parsed = template_parsed:gsub(pattern, replacement)
     end
 
-    new_record["template_parsed"] = template_parsed
+    record["template_parsed"] = template_parsed
 
-    return 1, timestamp, new_record
+    return 1, timestamp, record
 
 end
 
+-- Extends the fluent bit kubernetes annotations: https://docs.fluentbit.io/manual/pipeline/filters/kubernetes#kubernetes-pod-annotations
+-- Allows the user to specify the following annotation: "fluentbit.io/rename-log-collector: grafana"
+-- This will simply rename the container.
 function rename_container(tag, timestamp, record)
     if record["kubernetes"] == nil then
         return 0, 0, {}
@@ -49,37 +53,48 @@ function rename_container(tag, timestamp, record)
         return 0, 0, {}
     end
 
-    new_record = record
-    new_record["kubernetes"]["container_name"] = record["kubernetes"]["annotations"][annotation_name]
+    record["kubernetes"]["container_name"] = record["kubernetes"]["annotations"][annotation_name]
 
-    return 1, timestamp, new_record
-end
-
-function level_to_lower(tag, timestamp, record)
-    if record["level"] == nil then
-        return 0, 0, {}
-    end
-    record["level"] = string.lower(record["level"])
     return 1, timestamp, record
 end
 
-function map_level(tag, timestamp, record)
-    if record["level"] == nil then
-        return 0, 0, {}
-    end
-
-    mapping = {
-        warn = "warning",
-        erro = "error"
-    }
-
-    for key, value in pairs(mapping) do
-        if record["level"] == key then
-            new_record = record
-            new_record["level"] = value
-            return 1, timestamp, new_record
+-- helper function to search for a value in a table
+local function has_value (tab, val)
+    for index, value in ipairs(tab) do
+        if value == val then
+            return true
         end
     end
 
-    return 0, 0, {}
+    return false
+end
+
+-- Using the mapping below, all level string are mapped to be standard values. Unknown ones can be added below.
+function map_level(tag, timestamp, record)
+    if record["level"] == nil then
+        record["level"] = "unknown"
+        return 1, timestamp, record
+    end
+
+    mapping = {
+        critical = {"fatal", "f", "crit", "critical", "c"},
+        error = {"err", "erro", "error", "e"},
+        warning = {"warn", "warning", "w"},
+        info = {"info", "i"},
+        debug = {"dbug", "debug", "d"},
+        trace = {"trace", "t"}
+    }
+
+    record["src_level"] = record["level"]
+
+    for level, level_aliases in pairs(mapping) do
+        if has_value(level_aliases, string.lower(record["level"])) then
+            record["level"] = level
+            return 1, timestamp, record
+        end
+    end
+
+    record["level"] = "unknown"
+
+    return 1, timestamp, record
 end

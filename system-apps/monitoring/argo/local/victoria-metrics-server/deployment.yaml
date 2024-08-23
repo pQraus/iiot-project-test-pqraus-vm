@@ -14,11 +14,13 @@ spec:
     metadata:
       labels:
         app: victoria-metrics-server
+      annotations:
+        fluentbit.io/parser: victoria-metrics
     spec:
       automountServiceAccountToken: true
       containers:
         - name: victoria-metrics-server
-          image: victoriametrics/victoria-metrics:v1.94.0
+          image: victoriametrics/victoria-metrics:v1.101.0
           imagePullPolicy: IfNotPresent
           args:
             - --retentionPeriod=1  # 1 month
@@ -54,10 +56,10 @@ spec:
           resources:
             limits:
               memory: 400Mi
-              cpu: 100m
+              cpu: 1000m
             requests:
               memory: 250Mi
-              cpu: 40m
+              cpu: 10m
           volumeMounts:
             - mountPath: /storage
               name: data

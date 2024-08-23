@@ -64,6 +64,22 @@
       "tooltip": "",
       "type": "dashboards",
       "url": ""
+    },
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "iiot",
+        "resources",
+        "pvc"
+      ],
+      "targetBlank": false,
+      "title": "New link",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
     }
   ],
   "liveNow": false,
@@ -305,11 +321,134 @@
       "type": "timeseries"
     },
     {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics-server"
+      },
+      "description": "Includes all temporary storage like logs, configmaps, emptyDir, etc.\nMore info: https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 100,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 0,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "id": 21,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "victoriametrics-server"
+          },
+          "editorMode": "code",
+          "expr": "avg_over_time(\r\n    (\r\n        sum(kube_summary_pod_ephemeral_storage_used_bytes{job=\"kube_summary_exporter\", namespace=\"$namespace\", pod=~\".*$pod_filter.*\"}) by (pod)\r\n    )[$average]\r\n)",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "{{pod}}",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "Ephemeral storage by pod",
+      "transformations": [
+        {
+          "id": "configFromData",
+          "options": {
+            "applyTo": {
+              "id": "byType",
+              "options": "number"
+            },
+            "configRefId": "Max",
+            "mappings": [
+              {
+                "fieldName": "Value",
+                "handlerKey": "max"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 9
+        "y": 17
       },
       "id": 19,
       "title": "Pods",
@@ -358,7 +497,7 @@
                 "value": [
                   {
                     "title": "",
-                    "url": "/d/d5de2f0c-ec9f-4b74-ac4a-aabf2786cce7/resources-pod?orgId=1&var-pod=${__data.fields.pod}&${__url_time_range}&${__all_variables}"
+                    "url": "/d/resources-pod/resources-pod?orgId=1&var-pod=${__data.fields.pod}&${__url_time_range}&${__all_variables}"
                   }
                 ]
               },
@@ -412,7 +551,7 @@
                     "options": {
                       "pattern": "(\\d+),(\\d+)",
                       "result": {
-                        "color": "red",
+                        "color": "yellow",
                         "index": 0,
                         "text": "$2/$1"
                       }
@@ -505,7 +644,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 10
+        "y": 18
       },
       "id": 6,
       "options": {
@@ -521,7 +660,7 @@
         "showHeader": true,
         "sortBy": []
       },
-      "pluginVersion": "10.2.2",
+      "pluginVersion": "11.1.0",
       "targets": [
         {
           "datasource": {
@@ -756,7 +895,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 18
+        "y": 26
       },
       "id": 18,
       "title": "Events",
@@ -875,7 +1014,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 19
+        "y": 27
       },
       "id": 9,
       "options": {
@@ -891,7 +1030,7 @@
         "showHeader": true,
         "sortBy": []
       },
-      "pluginVersion": "10.2.2",
+      "pluginVersion": "11.1.0",
       "targets": [
         {
           "datasource": {
@@ -1035,7 +1174,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 35
       },
       "id": 17,
       "title": "Logs",
@@ -1050,7 +1189,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 28
+        "y": 36
       },
       "id": 15,
       "options": {
@@ -1070,7 +1209,7 @@
             "uid": "loki-datasource"
           },
           "editorMode": "code",
-          "expr": "{_job=\"fluent-bit-pod-logs\", _namespace=\"$namespace\"}\r\n| json\r\n| line_format `- {{printf \"%-8.8s\" ._level}} - {{printf \"%-14.14s\" ._namespace}} - {{printf \"%-50.50s\" ._pod}} - {{if .template_parsed}}{{.template_parsed}}{{else if .log}}{{.log}}{{else if .msg}}{{.msg}}{{else}}{{__line__}}{{end}}`\r\n| drop _job",
+          "expr": "{_job=\"fluent-bit-pod-logs\", _namespace=\"$namespace\", _pod=~\".*$pod_filter.*\"}\r\n| json\r\n| line_format `- {{printf \"%-8.8s\" ._level}} - {{printf \"%-14.14s\" ._namespace}} - {{printf \"%-50.50s\" ._pod}} - {{if .template_parsed}}{{.template_parsed}}{{else if .log}}{{.log}}{{else if .msg}}{{.msg}}{{else}}{{__line__}}{{end}}`\r\n| drop _job",
           "maxLines": 200,
           "queryType": "range",
           "refId": "A"
@@ -1084,7 +1223,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 36
+        "y": 44
       },
       "id": 16,
       "title": "Network usage",
@@ -1158,7 +1297,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 37
+        "y": 45
       },
       "id": 7,
       "options": {
@@ -1277,7 +1416,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 37
+        "y": 45
       },
       "id": 8,
       "options": {
@@ -1329,8 +1468,8 @@
       "type": "timeseries"
     }
   ],
-  "refresh": "30s",
-  "schemaVersion": 38,
+  "refresh": "1m",
+  "schemaVersion": 39,
   "tags": [
     "iiot",
     "resources",
@@ -1340,9 +1479,9 @@
     "list": [
       {
         "current": {
-          "selected": true,
-          "text": "default",
-          "value": "default"
+          "selected": false,
+          "text": "monitoring",
+          "value": "monitoring"
         },
         "datasource": {
           "type": "prometheus",
@@ -1431,8 +1570,8 @@
       {
         "current": {
           "selected": false,
-          "text": "1700657194",
-          "value": "1700657194"
+          "text": "1721290116",
+          "value": "1721290116"
         },
         "datasource": {
           "type": "yesoreyeram-infinity-datasource",
@@ -1521,20 +1660,20 @@
     ]
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-3h",
     "to": "now"
   },
   "timepicker": {
     "refresh_intervals": [
-      "10s",
       "30s",
       "1m",
-      "5m"
+      "5m",
+      "10m"
     ]
   },
   "timezone": "",
   "title": "Resources (Namespace)",
-  "uid": "a8b7b6f2-c5e8-4347-a9d2-ab8d92a10441",
+  "uid": "resources-namespace",
   "version": 1,
   "weekStart": ""
 }

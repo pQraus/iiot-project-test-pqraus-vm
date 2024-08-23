@@ -41,7 +41,7 @@ helmCharts:
       ingressClass:
         enabled: true
         isDefaultClass: true
-      
+
       ingressRoute:
         dashboard:
           matchRule: HostRegexp(`{subdomain:traefik}.{*}`)
@@ -50,3 +50,7 @@ helmCharts:
       logs:
         general:
           level: INFO
+
+      deployment:
+        podAnnotations:
+          fluentbit.io/parser: traefik

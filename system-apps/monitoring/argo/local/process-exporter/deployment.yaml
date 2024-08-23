@@ -11,17 +11,19 @@ spec:
     metadata:
       labels:
         app: process-exporter
+      annotations:
+        fluentbit.io/parser: custom-go-exporter
     spec:
       containers:
         - name: process-exporter
-          image: schulzsystemtechnik/iiot-app-process-exporter:1.0.0
+          image: schulzsystemtechnik/iiot-app-process-exporter:1.1.0
           resources:
             limits:
               memory: 40Mi
-              cpu: 20m
+              cpu: 1000m
             requests:
-              memory: 15Mi
-              cpu: 10m
+              memory: 10Mi
+              cpu: 2m
           securityContext:
             readOnlyRootFilesystem: true
           volumeMounts:

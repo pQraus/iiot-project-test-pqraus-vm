@@ -2,7 +2,7 @@ apiVersion: 1
 groups:
   - orgId: 1
     name: kubernetes-apps
-    folder: "Monitoring"
+    folder: "Alerts"
     interval: 10s
     rules:
       - uid: f345d3aa-0e02-43b9-9cbe-27d8f00bbf62
@@ -357,7 +357,7 @@ groups:
         isPaused: false
   - orgId: 1
     name: kubernetes-resources
-    folder: "Monitoring"
+    folder: "Alerts"
     interval: 10s
     rules:
       - uid: c68f0e51-3077-4976-baae-549512410a6a
@@ -559,139 +559,4 @@ groups:
         annotations:
           description: '{{ humanizePercentage (index $values "A").Value }} throttling of CPU in cluster {{ index $labels "cluster" }} namespace {{ index $labels "namespace" }} for container {{ index $labels "container" }} in pod {{ index $labels "pod" }}.'
           summary: Processes experience elevated CPU throttling.
-        isPaused: false
-      - uid: ae99af23-1e72-4ee5-a6a8-9217994b5257
-        title: ContainerCPUOvercommit
-        condition: A
-        data:
-          - refId: A
-            relativeTimeRange:
-              from: 600
-              to: 0
-            datasourceUid: victoriametrics-server
-            model:
-              editorMode: code
-              expr: "max(rate(container_cpu_usage_seconds_total[$__rate_interval])) by (namespace, pod, container)\r\n-\r\nmax(kube_pod_container_resource_requests{resource=\"cpu\"}) by (namespace, pod, container)\r\n> 0"
-              instant: true
-              intervalMs: 1000
-              legendFormat: __auto
-              maxDataPoints: 43200
-              range: false
-              refId: A
-        noDataState: NoData
-        execErrState: Error
-        for: 5m
-        annotations:
-          description: 'Container {{ index $labels "container" }} has overcommited CPU resource requests by {{ humanize (index $values "A").Value }} CPU shares.'
-          summary: Container has overcommitted CPU resource requests.
-        isPaused: false
-      - uid: d77cc7ab-df09-4a9a-8f84-d51e3ba14687
-        title: ContainerMemoryOvercommit
-        condition: A
-        data:
-          - refId: A
-            relativeTimeRange:
-              from: 600
-              to: 0
-            datasourceUid: victoriametrics-server
-            model:
-              editorMode: code
-              expr: "max(container_memory_rss) by (namespace, pod, container)\r\n-\r\nmax(kube_pod_container_resource_requests{resource=\"memory\"}) by (namespace, pod, container)\r\n> 0\r\nor\r\nmax(container_memory_working_set_bytes) by (namespace, pod, container)\r\n-\r\nmax(kube_pod_container_resource_requests{resource=\"memory\"}) by (namespace, pod, container)\r\n> 0"
-              instant: true
-              intervalMs: 1000
-              legendFormat: __auto
-              maxDataPoints: 43200
-              range: false
-              refId: A
-        noDataState: NoData
-        execErrState: Error
-        for: 5m
-        annotations:
-          description: 'Container {{ index $labels "container" }} has overcommitted memory resource requests for Pods by {{ humanize (index $values "A").Value }} bytes.'
-          summary: Container has overcommitted memory resource requests.
-        isPaused: false
-  - orgId: 1
-    name: kubernetes-system
-    folder: "Monitoring"
-    interval: 10s
-    rules:
-      - uid: e382a716-874f-4a72-b294-97659a13f426
-        title: KubeVersionMismatch
-        condition: A
-        data:
-          - refId: A
-            relativeTimeRange:
-              from: 600
-              to: 0
-            datasourceUid: victoriametrics-server
-            model:
-              editorMode: code
-              expr: count by (cluster) (count by (git_version, cluster) (label_replace(kubernetes_build_info{job!~"kube-dns|coredns"},"git_version","$1","git_version","(v[0-9]*.[0-9]*).*"))) > 1
-              instant: true
-              intervalMs: 1000
-              legendFormat: __auto
-              maxDataPoints: 43200
-              range: false
-              refId: A
-        noDataState: NoData
-        execErrState: Error
-        for: 15m
-        annotations:
-          description: 'There are {{ index $values "A" }} different semantic versions of Kubernetes components running.'
-          summary: Different semantic versions of Kubernetes components running.
-        isPaused: false
-      - uid: a715090d-df68-4052-aece-abccbd9e288d
-        title: KubeClientErrors
-        condition: A
-        data:
-          - refId: A
-            relativeTimeRange:
-              from: 600
-              to: 0
-            datasourceUid: victoriametrics-server
-            model:
-              editorMode: code
-              expr: "(sum(rate(rest_client_requests_total{job=\"kube-apiserver\",code=~\"5..\"}[5m])) by (cluster, instance, job, namespace)\r\n  /\r\nsum(rate(rest_client_requests_total{job=\"kube-apiserver\"}[5m])) by (cluster, instance, job, namespace))\r\n> 0.01"
-              instant: true
-              intervalMs: 1000
-              legendFormat: __auto
-              maxDataPoints: 43200
-              range: false
-              refId: A
-        noDataState: NoData
-        execErrState: Error
-        for: 5m
-        annotations:
-          description: 'Kubernetes API server client {{ index $labels "job" }}/{{ index $labels "instance" }} is experiencing {{ humanizePercentage (index $values "A").Value }} errors.'
-          summary: Kubernetes API server client is experiencing errors.
-        isPaused: false
-  - orgId: 1
-    name: kubernetes-system-kubelet
-    folder: "Monitoring"
-    interval: 10s
-    rules:
-      - uid: de2e38da-5a53-4848-8e41-42573307fc7a
-        title: KubeNodeNotReady
-        condition: A
-        data:
-          - refId: A
-            relativeTimeRange:
-              from: 600
-              to: 0
-            datasourceUid: victoriametrics-server
-            model:
-              editorMode: code
-              expr: kube_node_status_condition{job!="",condition="Ready",status="true"} == 0
-              instant: true
-              intervalMs: 1000
-              legendFormat: __auto
-              maxDataPoints: 43200
-              range: false
-              refId: A
-        noDataState: NoData
-        execErrState: Error
-        for: 15m
-        annotations:
-          description: '{{ index $labels "node" }} has been unready for more than 15 minutes.'
-          summary: Node is not ready.
         isPaused: false

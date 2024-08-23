@@ -24,3 +24,8 @@ helmCharts:
         hostpathClass:
           reclaimPolicy: Retain  # retain the pv after the corresponding pvc is deleted
           isDefaultClass: true
+
+patches:
+  - path: patches/container-patches.yaml
+    target:
+      kind: Deployment

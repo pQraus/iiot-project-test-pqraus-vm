@@ -75,15 +75,3 @@ calculated_metrics:
       match_labels: [cpu]
       calculations:
         - metric: node_cpu_seconds_total{source="node_exporter", mode=~"user|system"}
-  - name: node_filesystem_size_bytes
-    description: Filesystem size in bytes
-    calculation:
-      aggregation: sum
-      calculations:
-        - metric: node_filesystem_size_bytes{source="node_exporter", device=~"(/.*/.*)"}
-  - name: node_filesystem_avail_bytes
-    description: Filesystem space available to non-root users in bytes
-    calculation:
-      aggregation: sum
-      calculations:
-        - metric: node_filesystem_avail_bytes{source="node_exporter", device=~"(/.*/.*)"}

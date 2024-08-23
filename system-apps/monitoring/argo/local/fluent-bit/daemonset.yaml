@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: fluent-bit
-          image: schulzsystemtechnik/iiot-app-fluent-bit:2.2.0-1.0
+          image: schulzsystemtechnik/iiot-app-fluent-bit:2.2.3-1.0
           imagePullPolicy: IfNotPresent
           args:
             - --workdir=/fluent-bit/etc
@@ -26,6 +26,12 @@ spec:
           ports:
             - containerPort: 2020
               name: http
+              protocol: TCP
+            - containerPort: 5000
+              name: talos-services
+              protocol: TCP
+            - containerPort: 6000
+              name: talos-kernel
               protocol: TCP
           livenessProbe:
             httpGet:
@@ -38,9 +44,9 @@ spec:
           resources:
             limits:
               memory: 40Mi
-              cpu: 100m
+              cpu: 200m
             requests:
-              memory: 15Mi
+              memory: 10Mi
               cpu: 50m
           volumeMounts:
             - mountPath: /fluent-bit/etc/conf
