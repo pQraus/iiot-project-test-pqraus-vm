@@ -95,7 +95,7 @@
               "showLineNumbers": false,
               "showMiniMap": false
             },
-            "content": "### Setting up your pods\nTo set up your pods, read [this](https://github.com/SchulzSystemtechnik/iiot-base-box/blob/v2.3.2-124-gf05e8a5/docs/system-apps/monitoring/monitoring.md#manifest-configuration)\n\n### Filtering\nTo filter the logs according to your needs, use the filter at the top of the dashboard. First select your namespace, then your pod, and so on. If you are happy with your filters, use the time range to define, which exact logs you want to see. Keep in mind, that only the last 500 logs are shown. You can also use the diagrams or the graph to filter the logs.",
+            "content": "### Setting up your pods\nTo set up your pods, read [this](https://github.com/SchulzSystemtechnik/iiot-base-box/blob/v4.0.2-13-gf4699ba/docs/system-apps/monitoring/monitoring.md#manifest-configuration)\n\n### Filtering\nTo filter the logs according to your needs, use the filter at the top of the dashboard. First select your namespace, then your pod, and so on. If you are happy with your filters, use the time range to define, which exact logs you want to see. Keep in mind, that only the last 500 logs are shown. You can also use the diagrams or the graph to filter the logs.",
             "mode": "markdown"
           },
           "pluginVersion": "11.1.0",

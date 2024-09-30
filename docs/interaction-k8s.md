@@ -19,7 +19,7 @@ This file explains some workflows on how to interact with Kubernetes on an IIoT-
 ---
 
 ## Connect to Kubernetes
-![](/../../../../SchulzSystemtechnik/iiot-base-box/blob/main/docs-base/pics/access-methods.drawio.svg)
+![SVG](pics/access-methods-extended.drawio.svg)
 
 There are serval ways to access kubernetes (remote or local) as shown in the picture. 
 
@@ -72,7 +72,7 @@ For this step you will create a short-lived teleport certificate via the telepor
 
 ### Local access via talosctl
 **Requirements:**
-- connection to the talos api (look at [interaction with talos](/docs/interaction-talos.md))
+- connection to the talos api (look at [interaction with talos](interaction-talos.md))
 
 **Steps:**
 1. load the kubeconfig with `talosctl`:
@@ -128,36 +128,36 @@ This command by default uses teleport to login to the k8s cluster and port forwa
 - In general you can modify the manifest and commit + push the changes to GitHub. ArgoCD observes the manifests (by default) from the main branch and applies / synchronizes the resources automatically.
 - For development purposes, it may be useful to disable the auto-sync option (you don't need a commit for every typo ;) ). If everything is ok, you should enable the auto sync option again.
     1. open the specific application in the argo UI:
-        ![](/../../../../SchulzSystemtechnik/iiot-base-box/blob/media/docs-base/pics/argo-select-app.png)
+        ![IMG](pics/argo-select-app.png)
 
     2. open the *app details* and disable the auto synchronization:
-        ![](/../../../../SchulzSystemtechnik/iiot-base-box/blob/media/docs-base/pics/argo-disable-auto-sync.png)
+        ![IMG](pics/argo-disable-auto-sync.png)
 
     3. development and manual app deployment
     4. activate auto sync (*app details* menu)
-        ![](/../../../../SchulzSystemtechnik/iiot-base-box/blob/media/docs-base/pics/argo-enable-auto-sync.png)
+        ![IMG](pics/argo-enable-auto-sync.png)
 
 - Argo can also observes an app from another branch (this should only be activated during development):
     1. open the specific application in the argo UI:
-        ![](/../../../../SchulzSystemtechnik/iiot-base-box/blob/media/docs-base/pics/argo-select-app.png)
+        ![IMG](pics/argo-select-app.png)
 
     2. open the *app details* and and *edit* the application:
-        ![](/../../../../SchulzSystemtechnik/iiot-base-box/blob/media/docs-base/pics/argo-edit-app.png)
+        ![IMG](pics/argo-edit-app.png)
 
     3. change to another branch and *save* the app:
-        ![](/../../../../SchulzSystemtechnik/iiot-base-box/blob/media/docs-base/pics/argo-change-target-revision.png)
+        ![IMG](pics/argo-change-target-revision.png)
 
     4. development (pushing some stuff into the new branch)
     5. switch to the main branch (*app details* menu)
-        ![](/../../../../SchulzSystemtechnik/iiot-base-box/blob/media/docs-base/pics/argo-change-target-revision.png)
+        ![IMG](pics/argo-change-target-revision.png)
 
 ---
 
 ## Upgrade Kubernetes
-A kubernetes upgrade means that the container of the k8s-system (kube-api, kuber-proxy ...) are upgraded (download + redeploy). To check if an update is required run `iiotctl machine status`.
+A kubernetes upgrade means that the container of the k8s-system (kube-api, kube-proxy ...) are upgraded (download + re-deploy). To check if an update is required run `iiotctl machine status`.
 **Requirements:**
 - [Kubernetes access](#connect-to-kubernetes)
-- [Talos access](/docs/interaction-talos.md)
+- [Talos access](interaction-talos.md)
 
 A connection to talos and k8s is required to upgrade k8s. During the upgrade, the user applications will be temporarily unavailable.
 

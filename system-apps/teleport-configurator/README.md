@@ -5,4 +5,4 @@ The k8s job configures the `teleport-agent` system extension. The initial join t
 More information: https://github.com/SchulzSystemtechnik/iiot-app-teleport-configurator
 
 ## How an update is triggered
-The configurator job will process the teleport update. This job is declared as a Post-Sync-Job and will only run when argo executes a synchronization on the teleport-configurator app. To start a synchronization on this app, the teleport config(map) must be changed. This is the only reason why the configmap contains a key-value pair of the teleport version.
+The configurator cronjob will process the teleport update. The pod of the cronjob uses a tag which will point to the newest version. On every run the job checks if the image is the newest one and pull it if not. When there is no new image available, the pod detects no changes and finish without doing anything. A post-sync-job is also be executed when the complete app is updated.

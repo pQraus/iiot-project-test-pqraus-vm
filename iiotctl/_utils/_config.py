@@ -23,17 +23,17 @@ TELEPORT_PROXY_URL: str = get_config_entry(TASK_CONFIG, "teleport_proxy_url")
 IS_DEV_ENV: bool = get_config_entry(TASK_CONFIG, "is_dev_env")
 CONTAINER_REGISTRIES: List[str] = get_config_entry(TASK_CONFIG, "container_registries")
 TRAEFIK_ENDPOINTS: List[str] = get_config_entry(TASK_CONFIG, "traefik_entrypoints")
-REMOTE_MONITORING: bool = get_config_entry(TASK_CONFIG, "remote_monitoring")
+ADDITIONAL_SYSTEM_APPS: List[str] = get_config_entry(TASK_CONFIG, "additional_system_apps")
 
 # read from asdf .tool-versions file
 ASDF_PLUGINS: Dict[str, Dict[str, str]] = load_asdf_plugins(ASDF_CONFIG_PATH)
 
-DEP_GH = ["gh", "version", get_config_entry(ASDF_PLUGINS["gh"], "version")]
+DEP_GH = ["gh", "version"]
 DEP_GPG = ["gpg", "--version"]
-DEP_HELM = ["helm", "version", get_config_entry(ASDF_PLUGINS["helm"], "version")]
-DEP_JQ = ["jq", "--version", get_config_entry(ASDF_PLUGINS["jq"], "version")]
-DEP_KUBECTL = ["kubectl", "version -o yaml --client", get_config_entry(ASDF_PLUGINS["kubectl"], "version")]
-DEP_TALOSCTL = ["talosctl", "version --client", get_config_entry(ASDF_PLUGINS["talosctl"], "version")]
+DEP_HELM = ["helm", "version"]
+DEP_JQ = ["jq", "--version"]
+DEP_KUBECTL = ["kubectl", "version -o yaml --client"]
+DEP_TALOSCTL = ["talosctl", "version --client"]
 DEP_TCTL = ["tctl", "version"]
-DEP_TSH = ["tsh", "version", get_config_entry(ASDF_PLUGINS["teleport-community"], "version")]
-DEP_KUBESEAL = ["kubeseal", "--version", get_config_entry(ASDF_PLUGINS["kubeseal"], "version")]
+DEP_TSH = ["tsh", "version"]
+DEP_KUBESEAL = ["kubeseal", "--version"]

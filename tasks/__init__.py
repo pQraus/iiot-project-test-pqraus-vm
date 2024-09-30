@@ -1,3 +1,4 @@
+link = 'https://github.com/SchulzSystemtechnik/iiot-misc-asdf-tools'
 print("DEPRECATED")
-print("Use 'iiotctl' instead of 'invoke'! Look at 'https://github.com/SchulzSystemtechnik/iiot-misc-asdf-tools' to install iiotctl")
+print(f"Use 'iiotctl' instead of 'invoke'! Use '{link}' to install iiotctl.")
 print()

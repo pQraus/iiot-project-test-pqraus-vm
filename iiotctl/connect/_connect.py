@@ -84,7 +84,7 @@ def connect_argo(local_port: int, local_address: str, use_current_context: bool,
 
     print()
     link = f"http://{local_address}:{local_port}/argocd"
-    print(f"Argo is available at: [link={link}]{link}[/link])")
+    print(f"Argo is available at: [link={link}]{link}[/link]")
 
     kubectl.port_forward("services/argocd-server", "argocd", f"{local_port}:80", kubeconfig, address=local_address)
 

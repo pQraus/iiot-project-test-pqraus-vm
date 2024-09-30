@@ -4,6 +4,5 @@ resources:
   - kube-summary-exporter/
   - loki/
   - process-exporter/
-  - pvc-exporter/
   - timestamp-api/
   - victoria-metrics-server/

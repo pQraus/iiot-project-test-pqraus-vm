@@ -11,9 +11,10 @@ This file explains some workflows on how to interact with talos on an IIoT-Box. 
 
 
 ## Connect to talos
-![](/../../../../SchulzSystemtechnik/iiot-base-box/blob/main/docs-base/pics/access-methods.drawio.svg)
+![SVG](pics/access-methods-extended.drawio.svg)
 
-There are serval ways to access talos (remote or local) as shown in the picture. 
+
+There are several ways to access talos (remote or local) as shown in the picture. 
 
 Choose one method:
 - **recommended** [Remote access via teleport](#remote-access-via-teleport)
@@ -38,10 +39,10 @@ When you have finished your work, simply abort the iiotctl connection task.
 1. Connect to the VPN-Router
 2. create a local certificate to access the box: [access via auth-proxy](#local-access-via-auth-proxy)
 
-(In case there is an error in the auth-proxy, you can also use the file './tasks/talosconfig' created during bootstrap process.)
+(In case there is an error with the auth-proxy, you should follow: [Steps to connect with the created talosconfig](#steps-to-connect-with-the-created-talosconfig).)
 
 ### Local access via auth-proxy
-For this step you will create a short-lived teleport certificate via the teleport server. This certificate is used to authenticate against talos (via the auth-proxy). **For the creation of this certificate you need (internet) access to the teleport server.** The created certificate is stored in a talos-context on your local pc. Therefore, it is possible to access the box in a local network while your pc and / or the IIoT-box isn't connected to the public internet / teleport.
+For this step you will create a short-lived teleport certificate via the teleport server. This certificate is used to authenticate against talos (via the auth-proxy). **For the creation of this certificate you need an (internet) connection to the teleport server.** The created certificate is stored in the talosconfig file on your local pc. Therefore, it is possible to access the box in a local network while your pc and / or the IIoT-box isn't connected to the public internet / teleport.
 
 1. find out the IP address of the box (via router, documentation ...)
 2. create the certificates / talosconfig via teleport-server **(this step requires an internet connection)**; it adds a new talosconfig entry into the `~/.talos/config` file
@@ -86,9 +87,9 @@ For this step you will create a short-lived teleport certificate via the telepor
     cd <project-repo>
     talosctl config merge .tasks/talosconfig
     ```
-3. You should be connected with the machine:
+3. You should be connected with the machine. To check, execute:
     ```bash
-    talosctl config contexts # should mark the merged config as activated
+    talosctl config contexts  # should mark the merged config as activated
     # otherwise select the right context:
     talosctl config context <BOX-NAME>
     ```
@@ -103,12 +104,12 @@ The following instructions will show you how to synchronize the machine config b
 **Workflows:**
 (For the following iiotctl tasks you can always use the `--use-current-context` argument if you want to access the box via local certificate. Then the current selected talos config will be used. Otherwise the talosconfig for teleport will be used.)
 - test if the machine config is out of sync:
-    ```
+    ```bash
     iiotctl machine status
     ```
 - synchronize the machine config:
-    ```
-    iiotctl machine sync # optional with --apply-mode reboot or staged
+    ```bash
+    iiotctl machine sync  # optional with --apply-mode reboot or staged
     ```
     Sometimes a reboot is required to apply the new config. In this case you must add the `--apply-mode` parameter to the task.
     - `no-reboot` (default): apply the changes directly
@@ -122,7 +123,7 @@ The following instructions will show you how to synchronize the machine config b
 
 ### Upgrade talos
 When updating to a different talos installer image version is a talos upgrade required.
-```
+```bash
 iiotctl machine upgrade-talos
 ```
 **This will reboot the system when the update check has passed.**

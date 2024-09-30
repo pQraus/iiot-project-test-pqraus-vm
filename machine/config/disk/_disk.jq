@@ -1,6 +1,6 @@
 # Changes here will be overwritten by Copier; DO NOT EDIT MANUALLY
 
-import "machine/config/disk/disk-name" as disk;
+import "machine/config/disk/disk-selector" as disk;
 
-
-.machine.install.disk = disk::disk_name
+del(.machine.install.disk) | # exchanged with the disk selector
+.machine.install.diskSelector = disk::disk_selector

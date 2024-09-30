@@ -5,7 +5,6 @@ configMapGenerator:
     files:
       - overview.json
       - pod_logs.json
-      - pvcs.json
       - resources_cluster.json
       - resources_namespace.json
       - resources_pod.json

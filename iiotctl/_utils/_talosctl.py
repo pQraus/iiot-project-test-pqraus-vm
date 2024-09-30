@@ -70,6 +70,22 @@ def fetch_mc(id, **talos_args) -> bytes:
     return bytes(json.dumps(fetched_mc, indent=2), ENCODING)
 
 
+def get_disks(**talos_args) -> Dict[str, Dict[str, str]]:
+    base_cmd = ["talosctl", "disks"]
+    additional_args = parse_kwargs_to_cli_args(**talos_args)
+    disks_table = Command.check_output(cmd=base_cmd + additional_args)
+    header_line = disks_table.splitlines()[0]
+    keys = header_line.split()[:11]  # only use the first 11 elements, skip READ_ONLY ...
+    disk_entries = disks_table.splitlines()[1:]
+    disks = {}
+    for i in disk_entries:
+        disk_values = re.split(r'\s{3,}', i)
+        disk = {key: value for key, value in zip(keys, disk_values) if value != "-"}
+        name = disk.pop("DEV")
+        disks.update({name: disk})
+    return disks
+
+
 def get_live_talos_version(**talos_args) -> str:
     """get the talos version from a machine with talosctl
 
@@ -89,33 +105,35 @@ def get_live_talos_version(**talos_args) -> str:
     return live_version
 
 
-def get_talos_resource(resource_name, **talos_args) -> Dict:
+def get_talos_resource(resource_name, **talos_args) -> Dict | List[Dict]:
     """get a resource from the machine via talosctl in json"""
     additional_args = parse_kwargs_to_cli_args(**talos_args)
     cmd = ["talosctl", "get", resource_name, "-o", "json"] + additional_args
-    cmd_result = Command.check_output(cmd, additional_error_msg="Can't get the talos resource.")
-    return json.loads(cmd_result)
+    cmd_result = Command.check_output(cmd, additional_error_msg=f"Can't get the talos resource: {resource_name}.")
 
-
-def _fetch_talos_extension_data(jsonpath: str, **talos_args):
-    """fetch talos extension data from live machine via jsonpath"""
-    additional_args = parse_kwargs_to_cli_args(**talos_args)
-    cmd = ["talosctl", "get", "extensions", "-o", "jsonpath=" + jsonpath] + additional_args
-    data: str = Command.check_output(cmd)
-
-    return data.rstrip().split("\n")
+    try:
+        return json.loads(cmd_result)
+    except json.JSONDecodeError:
+        decoder = json.JSONDecoder()
+        result = []
+        while cmd_result:
+            element, new_start = decoder.raw_decode(cmd_result)
+            cmd_result = cmd_result[new_start:].strip()
+            result.append(element)
+        return result
 
 
 def get_live_talos_extension_versions(**talos_args):
     """returns all live talos extensions with their respective versions"""
-    live_exts_names = _fetch_talos_extension_data(jsonpath="{.spec.metadata.name}", **talos_args)
-    live_exts_versions = _fetch_talos_extension_data(jsonpath="{.spec.metadata.version}", **talos_args)
-    live_exts_authors = _fetch_talos_extension_data(jsonpath="{.spec.metadata.author}", **talos_args)
+    extension_dicts: List[Dict] = get_talos_resource(resource_name="extensions", **talos_args)
 
     live_exts = {}
-    for name, vers, author in zip(live_exts_names, live_exts_versions, live_exts_authors):
-        if "Talos Machinery" not in author:
-            live_exts.update({name: vers})
+    for ext_d in extension_dicts:
+        metadata: Dict = ext_d["spec"]["metadata"]
+        author = metadata.get("author")
+        if (author is None) or ("Talos Machinery" in author):
+            continue
+        live_exts.update({metadata.get("name"): metadata.get("version")})
 
     return live_exts
 

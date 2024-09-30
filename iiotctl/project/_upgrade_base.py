@@ -5,10 +5,10 @@ import typer
 from rich import print
 
 from .._utils._common import Command, TyperAbort
-from .._utils._config import (BASE_REPO_VERSION, BOX_NAME, K8S_VERSION,
-                              TALOS_VERSION, TELEPORT_ENABLED,
-                              TRAEFIK_ENDPOINTS)
-from .._utils._constants import REPO_README
+from .._utils._config import (ADDITIONAL_SYSTEM_APPS, BASE_REPO_VERSION,
+                              BOX_NAME, K8S_VERSION, TALOS_VERSION,
+                              TELEPORT_ENABLED, TRAEFIK_ENDPOINTS)
+from .._utils._constants import MACHINE_DIR, REPO_README
 from ._render_manifests import render_argo_manifests
 from ._setup_tools import setup_tools
 
@@ -19,10 +19,20 @@ class _StaticBadge:
     badge_text = "![Static Badge](https://img.shields.io/badge/{content}-{color}?label={label})"
 
     def __init__(self, content: str, color: str, label: str, link=None):
-        self.content = content.replace("-", "--")
+        updated_content, updated_label = self._replace_special_chars(content, label)
+        self.content = updated_content
+        self.label = updated_label
         self.color = color
-        self.label = label
         self.link = link
+
+    @staticmethod
+    def _replace_special_chars(content: str, label: str):
+        updated_content = content.replace("-", "--")  # render dashes
+        updated_content = updated_content.replace("_", "$TMP$")  # prepare underscore rendering with placeholder
+        updated_content = updated_content.replace(" ", "_")  # render content whitespaces
+        updated_content = updated_content.replace("$TMP$", "__")  # render underscores
+        updated_label = label.replace(" ", "%20")  # render label whitespaces
+        return updated_content, updated_label
 
     def __str__(self) -> str:
         rendered_badge = self.badge_text.format(
@@ -51,9 +61,13 @@ def _create_badges():
         _StaticBadge("v" + TALOS_VERSION, "red", "Talos"),
         _StaticBadge("v" + K8S_VERSION, "blue", "Kubernetes"),
     ]
-    if TELEPORT_ENABLED and "private" in TRAEFIK_ENDPOINTS:
-        teleport_url = f"https://private-{BOX_NAME}.prod.teleport.schulzdevcloud.com/argocd"
-        badges.append(_StaticBadge("via_Teleport", "purple", "ArgoCD", teleport_url))
+    if not (TELEPORT_ENABLED and ("private" in TRAEFIK_ENDPOINTS)):
+        return badges
+    teleport_url = f"https://private-{BOX_NAME}.prod.teleport.schulzdevcloud.com/argocd"
+    badges.append(_StaticBadge("via Teleport", "purple", "ArgoCD", teleport_url))
+    if "local_monitoring" in ADDITIONAL_SYSTEM_APPS:
+        teleport_url = f"https://private-{BOX_NAME}.prod.teleport.schulzdevcloud.com/monitor"
+        badges.append(_StaticBadge("via Teleport", "purple", "Local Monitoring", teleport_url))
     return badges
 
 
@@ -153,6 +167,14 @@ def upgrade(set_up_tooling: bool, render_manifests: bool, render_readme: bool, c
             Command.check_output(["git", "add", "."])
             Command.check_output(["git", "commit", "-m", "feat: update argo manifests"])
 
+    # special v3 -> v4 migration
+    disk_selector_file = MACHINE_DIR / "config" / "disk" / "disk-selector.jq"
+    if not disk_selector_file.exists():
+        typer.secho(
+            "\n\nNow execute 'iiotctl machine resources --patch' to ensure you have the right disk selected.",
+            fg="yellow"
+        )
+
     typer.secho(
-        "\nNow execute 'iiotctl machine status/sync' to ensure everything is in-sync with the machine.", fg="green"
+        "\nExecute 'iiotctl machine status/sync' to ensure everything is in-sync with the machine.", fg="green"
     )
