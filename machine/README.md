@@ -29,11 +29,6 @@ Only `.jq` files with a leading underscore will be used to build the machineconf
 * `machine/config/network/interfaces.jq` ==> is imported from _network.jq
 
 
-## Extensions
-Since Talos 1.5 the extensions are included into the installer image
-https://www.talos.dev/v1.5/talos-guides/configuration/system-extensions/
-
-
 ## Config Encryption
 The `config-sealed` dir contains the (complete) sealed machine config, sha256 hash of the last encrypted config and the public key to encrypt the config. With the hash it's possible to verify that the live config is equal to the encrypted one. 
 

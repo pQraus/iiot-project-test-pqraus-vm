@@ -1,9 +1,15 @@
 from collections.abc import Generator
 from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
 from shutil import copyfile
 from typing import Any
 from uuid import uuid4
 
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.x509 import load_pem_x509_certificate
+from cryptography.x509.oid import NameOID
 from rich import print
 
 from .._utils import _check as check
@@ -23,17 +29,13 @@ PUBLIC_KEY = APP_DIR / "sealing-secret/public-key.crt"
 
 
 def _check_if_cert_expired(cert_file) -> bool:
-    return not Command.check(
-        cmd=[
-            "openssl",
-            "x509",
-            "-checkend",
-            "0",
-            "-noout",
-            "-in",
-            cert_file
-        ]
-    )
+    with open(cert_file, "rb") as file:
+        cert = load_pem_x509_certificate(file.read())
+
+    now = datetime.now(timezone.utc)
+    valid_until = cert.not_valid_after_utc
+    time_valid = valid_until - now
+    return time_valid.total_seconds() <= 0.0
 
 
 def _check_if_sealing_possible() -> bool:
@@ -50,31 +52,57 @@ def _check_if_sealing_possible() -> bool:
     return True
 
 
+def _gen_key_and_cert():
+    root_key = rsa.generate_private_key(public_exponent=65_537, key_size=4096)
+    root_key_serialized = root_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+
+    options = [x509.NameAttribute(NameOID.COMMON_NAME, "sealed-secret"),
+               x509.NameAttribute(NameOID.ORGANIZATION_NAME, "sealed-secret")]
+    subject = issuer = x509.Name(options)
+    root_cert = x509.CertificateBuilder().subject_name(
+        subject
+    ).issuer_name(
+        issuer
+    ).public_key(
+        root_key.public_key()
+    ).serial_number(
+        x509.random_serial_number()
+    ).not_valid_before(
+        datetime.now(timezone.utc)
+    ).not_valid_after(
+        datetime.now(timezone.utc) + timedelta(days=365)
+    ).add_extension(
+        x509.SubjectKeyIdentifier.from_public_key(root_key.public_key()),
+        critical=False
+    ).add_extension(
+        x509.AuthorityKeyIdentifier.from_issuer_public_key(root_key.public_key()),
+        critical=False
+    ).add_extension(
+        x509.BasicConstraints(ca=True, path_length=None),
+        critical=True,
+    ).sign(root_key, hashes.SHA256())
+
+    root_cert_serialized = root_cert.public_bytes(serialization.Encoding.PEM)
+    return root_cert_serialized.decode(), root_key_serialized.decode()
+
+
 @contextmanager
 def _create_key() -> Generator[tuple[str, str], Any, Any]:
     if not MACHINE_PATCH_SEALED_SECRET_KEY.exists():
         copyfile(MACHINE_PATCH_SEALED_SECRET_KEY_TEMP, MACHINE_PATCH_SEALED_SECRET_KEY)
 
     PUBLIC_KEY.parent.mkdir(parents=True, exist_ok=True)
-    Command.check_output(
-        cmd=[
-            "openssl",
-            "req",
-            "-x509",
-            "-days=365",
-            "-nodes",
-            "-newkey=rsa:4096",
-            f"-keyout={PRIVATE_KEY}",
-            f"-out={PUBLIC_KEY}",
-            "-subj=/CN=sealed-secret/O=sealed-secret"
-        ]
-    )
+    public_key, private_key = _gen_key_and_cert()
 
-    with open(PUBLIC_KEY) as file:
-        public_key = file.read()
+    with open(PUBLIC_KEY, "w") as file:
+        file.write(public_key)
 
-    with open(PRIVATE_KEY) as file:
-        private_key = file.read()
+    with open(PRIVATE_KEY, "w") as file:
+        file.write(private_key)
 
     yield public_key, private_key
 
@@ -116,8 +144,11 @@ def _push_new_key_to_k8s():
     with open(MACHINE_PATCH_SEALED_SECRET_KEY, "w") as file:
         file.write(secret)
 
-    kubectl.apply(file=MACHINE_PATCH_SEALED_SECRET_KEY)
-    kubectl.rollout_restart_deployment(deployment="sealed-secrets-controller", namespace="sealed-secrets")
+    kubectl.apply(file=MACHINE_PATCH_SEALED_SECRET_KEY, kubeconfig=K8S_CONFIG_USER)
+    kubectl.rollout_restart_deployment(
+        deployment="sealed-secrets-controller",
+        namespace="sealed-secrets",
+        kubeconfig=K8S_CONFIG_USER)
 
     print("Successfully pushed encryption key to cluster")
 

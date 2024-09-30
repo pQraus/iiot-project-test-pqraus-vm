@@ -7,3 +7,4 @@ teleport-community 14.3.20  # https://github.com/SchulzSystemtechnik/iiot-misc-a
 talosctl 1.7.5              # https://github.com/SchulzSystemtechnik/iiot-misc-asdf-talosctl.git
 kubeseal 0.27.0             # https://github.com/SchulzSystemtechnik/iiot-misc-asdf-kubeseal.git
 helm 3.15.2                 # https://github.com/SchulzSystemtechnik/iiot-misc-asdf-helm.git
+iiotctl 2.0.0               # https://github.com/SchulzSystemtechnik/iiot-misc-asdf-iiotctl.git

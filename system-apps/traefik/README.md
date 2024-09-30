@@ -6,6 +6,9 @@ With the help of traefik we do declare different `entrypoints`. Each of them fun
 
 By default is the entrypoint **private** during IIoT-Box-Setup configured. The entrypoints **public** and **nodeport** are optionals.
 
+## Overview
+![SVG](pics/traefik-routing.drawio.svg)
+
 Entrypoints:
 - **private:** access via task `iiotctl connect traefik` (Developer)
 - **public:** access via teleport (Cloud API)

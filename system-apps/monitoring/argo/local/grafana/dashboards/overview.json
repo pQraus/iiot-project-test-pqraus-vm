@@ -235,19 +235,6 @@
             "uid": "victoriametrics-server"
           },
           "editorMode": "code",
-          "expr": "sum(up{job=\"pvc_exporter\"} @ $current_unix_time)\r\nor\r\nabsent(up{job=\"pvc_exporter\"} @ $current_unix_time) - 1",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "PVC-Exporter",
-          "range": true,
-          "refId": "H"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "victoriametrics-server"
-          },
-          "editorMode": "code",
           "expr": "sum(up{job=\"kube_summary_exporter\"} @ $current_unix_time)\r\nor\r\nabsent(up{job=\"kube_summary_exporter\"} @ $current_unix_time) - 1",
           "hide": false,
           "instant": false,

@@ -1,13 +1,51 @@
-from typing import List
+from typing import List, Optional
 
 import typer
 from typing_extensions import Annotated
 
 from .._utils._constants import (DEFAULT_MACHINE_CONFIG_ID, REPO_ROOT,
                                  TASKS_TMP_DIR)
-from . import _bootstrap, _status, _sync, _talos_config, _upgrade
+from . import _bootstrap, _resources, _status, _sync, _talos_config, _upgrade
 
 app = typer.Typer(name="machine", help="Interact with live machine via established connection.")
+
+
+@app.command()
+def resources(
+    machine_ip: Annotated[
+        Optional[str], typer.Argument(help="IP address of the box to get resource information from")
+    ] = None,
+    patch: Annotated[
+        bool, typer.Option("--patch", "-p", help="interactively select talos resource patch files creation")
+    ] = False,
+    use_current_context: Annotated[
+        bool,
+        typer.Option(
+            "--use-current-context",
+            "-u",
+            help="use the current selected talos context, otherwise the machine/talosconfig-teleport file will be used"
+        )
+    ] = False
+):
+    """
+    show important machine resource data (e.g. 'disks', 'ethernet interfaces, ...);
+    optionally create machine resource patch files to configure which should be used by machine
+
+    EXAMPLES:
+
+    Call with local machine ip to use insecure connection:
+    >>> iiotctl machine resources 192.168.XXX.XXX
+
+    Call with argument '--patch' to interactively create machine resource patch files for machine:
+    >>> iiotctl machine resources --patch
+
+    Call with argument '--use-current-context' to connect via the currently selected talos context.
+    >>> iiotctl machine resources --use-current-context
+
+        Useful if you want to connect via local talos cert and context, without teleport.
+    """
+
+    _resources.resources(machine_ip, patch, use_current_context)
 
 
 @app.command()

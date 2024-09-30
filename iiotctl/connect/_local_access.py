@@ -33,7 +33,6 @@ def configure_local_talos_access(machine_ip: str, ttl: str, talosconfig: str):
     print("Create a teleport certificate to access the machine's talos api in local network ...")
     teleport.login(TELEPORT_PROXY_URL)
     cert_b64, key_b64 = _get_teleport_key_cert(ttl)
-    Command.check_output(cmd=["tsh", "logout"])
 
     talosconfig: Path = Path(talosconfig)
 
@@ -71,7 +70,6 @@ def configure_local_k8s_access(machine_ip: str, ttl: str, kubeconfig: str):
     print("Create a teleport certificate to access the machine's k8s api in local network ...")
     teleport.login(TELEPORT_PROXY_URL)
     cert_b64, key_b64 = _get_teleport_key_cert(ttl)
-    Command.check_output(["tsh", "logout"])
 
     # get the root ca from the /machine/talosconfig-teleport file of the project
     with common.patch_yaml_file(file_path=TALOS_CONFIG_PROJECT) as config:
