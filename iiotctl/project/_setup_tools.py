@@ -9,7 +9,8 @@ from rich.table import Table
 
 from .._utils import _check as check
 from .._utils._common import Command, TyperAbort
-from .._utils._config import ASDF_PLUGINS, DEP_GH
+from .._utils._config import ASDF_PLUGINS
+from .._utils._constants import DEP_GH
 
 
 def _get_globally_used_tools() -> Dict[str, str]:

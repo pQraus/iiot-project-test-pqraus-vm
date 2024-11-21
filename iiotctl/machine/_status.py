@@ -3,9 +3,9 @@ from rich import print
 from .._utils import _check as check
 from .._utils import _common as common
 from .._utils import _talosctl as talosctl
-from .._utils._config import (DEP_GPG, DEP_JQ, DEP_TALOSCTL,
-                              TALOS_INSTALLED_EXTENSIONS)
-from .._utils._constants import DEFAULT_MACHINE_CONFIG_ID, TALOS_CONFIG_PROJECT
+from .._utils._config import TALOS_INSTALLED_EXTENSIONS
+from .._utils._constants import (DEFAULT_MACHINE_CONFIG_ID, DEP_GPG, DEP_JQ,
+                                 DEP_TALOSCTL, TALOS_CONFIG_PROJECT)
 from .._utils._installer_spec_config import load_repo_extension_versions
 from . import _talos_config as talos_config
 from ._misc import (check_if_mc_diffs, check_if_talos_ext_diffs,

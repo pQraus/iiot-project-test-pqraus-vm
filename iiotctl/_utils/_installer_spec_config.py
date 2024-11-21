@@ -1,12 +1,13 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from yaml import safe_load
 
 from ._common import TyperAbort
 
 _INSTALLER_IMAGES_FILE = Path(__file__).parent.parent / "installer-images.yaml"
+_SCHEMA_VERSION = "v2"
 
 
 @dataclass
@@ -21,8 +22,8 @@ class MetaData:
 class Extension:
     name: str
     version: str
-    image_repo: str
-    image_tag: str
+    image_repo: Optional[str] = None  # aren't really used, just parsed to ensure correct 'installer_images.yaml' format
+    image_tag: Optional[str] = None   # ...
 
 
 @dataclass
@@ -40,7 +41,7 @@ class InstallerSpecs:
     images: List[InstallerImage]
 
     def __post_init__(self):
-        if self.version != "v1":
+        if self.version != _SCHEMA_VERSION:
             raise TyperAbort(f"Schema version {self.version} in {_INSTALLER_IMAGES_FILE} isn't supported")
         self.metadata = MetaData(**self.metadata)
         self.extensions = [Extension(**ext) for ext in self.extensions]

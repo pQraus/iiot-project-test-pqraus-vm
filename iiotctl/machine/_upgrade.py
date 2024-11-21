@@ -1,5 +1,3 @@
-from typing import List
-
 import typer
 from rich import print
 from rich.table import Table
@@ -9,11 +7,11 @@ from .._utils import _common as common
 from .._utils import _kubectl as kubectl
 from .._utils import _talosctl as talosctl
 from .._utils import _teleport as teleport
-from .._utils._common import Command
-from .._utils._config import (BOX_NAME, DEP_JQ, DEP_KUBECTL, DEP_TALOSCTL,
-                              DEP_TSH, K8S_VERSION, TALOS_INSTALLED_EXTENSIONS,
-                              TALOS_VERSION, TELEPORT_PROXY_URL)
-from .._utils._constants import K8S_CONFIG_USER, TALOS_CONFIG_PROJECT
+from .._utils._config import (BOX_NAME, K8S_VERSION,
+                              TALOS_INSTALLED_EXTENSIONS, TALOS_VERSION,
+                              TELEPORT_PROXY_URL)
+from .._utils._constants import (DEP_JQ, DEP_KUBECTL, DEP_TALOSCTL, DEP_TSH,
+                                 K8S_CONFIG_USER, TALOS_CONFIG_PROJECT)
 from .._utils._installer_spec_config import (load_repo_extension_versions,
                                              load_repo_installer_image_ref)
 
@@ -45,7 +43,7 @@ def _print_talos_overview_table(node_name: str, image: str, repo_vers: str, live
     print()
 
 
-def _set_talos_upgrade_args(image_ref: str, use_current_context: bool, verbose: bool, preserve: bool, stage: bool):
+def _set_talos_upgrade_kwargs(image_ref: str, use_current_context: bool, verbose: bool, preserve: bool, stage: bool):
     """create dict with args to configure talos update process"""
     upgrade_args = {"image": image_ref, "preserve": preserve, "stage": stage}
     if not use_current_context:
@@ -59,11 +57,22 @@ def _set_talos_upgrade_args(image_ref: str, use_current_context: bool, verbose: 
     return upgrade_args
 
 
-def _preload_images(images: List[str]):
-    """load docker images onto live machine to prepare for later update"""
+@check.dependency(*DEP_TALOSCTL)
+def prepare_upgrade(use_current_context: bool):
+    common.print_if(
+        "Ensure that 'iiotctl connect talos' is running\n", not use_current_context
+    )
+    config_args = (
+        {} if use_current_context else {"talosconfig": TALOS_CONFIG_PROJECT.resolve()}
+    )
+
+    response: str = talosctl.image_default(**config_args)
+    images = response.splitlines()
+    images.remove(f"ghcr.io/siderolabs/installer:v{TALOS_VERSION}")
+
     for img in images:
-        print(f"Pull image: {img} ...", end=" ")
-        Command.check_output(["talosctl", "image", "pull", img])
+        print(f"Pull image: '{img}' ...", end=" ")
+        talosctl.image_pull(img, **config_args)
         print(":white_heavy_check_mark:")
 
     print("Preloading images done.\n")
@@ -76,16 +85,16 @@ def upgrade_talos(use_current_context: bool, preserve: bool, stage: bool, verbos
     common.print_if(
         "Ensure that 'iiotctl connect talos' is running\n", not use_current_context
     )
-    config_arg = (
+    config_args = (
         {} if use_current_context else {"talosconfig": TALOS_CONFIG_PROJECT.resolve()}
     )
-    live_talos_version = talosctl.get_live_talos_version(**config_arg)
-    node_name_rsrc = talosctl.get_talos_resource("nodename")
+    live_talos_version = talosctl.get_live_talos_version(**config_args)
+    node_name_rsrc = talosctl.get(resource="nodename", **config_args)
     node_name = node_name_rsrc["spec"]["nodename"]
     image_ref = load_repo_installer_image_ref(required_extensions=TALOS_INSTALLED_EXTENSIONS)
     _print_talos_overview_table(node_name, image_ref, TALOS_VERSION, live_talos_version)
 
-    live_exts = talosctl.get_live_talos_extension_versions(**config_arg)
+    live_exts = talosctl.get_live_talos_extension_versions(**config_args)
     repo_exts = load_repo_extension_versions(required_extensions=TALOS_INSTALLED_EXTENSIONS)
     common.print_talos_extension_changes(repo_exts, live_exts)
     if live_exts == repo_exts:
@@ -100,14 +109,14 @@ def upgrade_talos(use_current_context: bool, preserve: bool, stage: bool, verbos
         print()
         print("It takes a while (~ 5 min) before the machine can be reconnected.")
         print("It's necessary to restart the 'iiotctl connect talos' task.")
-        upgrade_args = _set_talos_upgrade_args(image_ref, use_current_context, verbose, preserve, stage)
-        talosctl.upgrade_talos(**upgrade_args)
+        upgrade_kwargs = _set_talos_upgrade_kwargs(image_ref, use_current_context, verbose, preserve, stage)
+        talosctl.upgrade_talos(**upgrade_kwargs)
 
 
 @check.dependency(*DEP_KUBECTL)
 @check.dependency(*DEP_TALOSCTL)
 @check.dependency(*DEP_TSH)
-def upgrade_k8s(use_current_contexts: bool, preload: bool, dry_run: bool, verbose: bool):
+def upgrade_k8s(use_current_contexts: bool, dry_run: bool, verbose: bool):
 
     common.print_if(
         "Ensure that 'iiotctl connect talos' is running'\n",
@@ -119,19 +128,10 @@ def upgrade_k8s(use_current_contexts: bool, preload: bool, dry_run: bool, verbos
 
     talosctl.get_live_talos_version(**config_args)
 
-    node_name_rsrc = talosctl.get_talos_resource("nodename")
+    node_name_rsrc = talosctl.get(resource="nodename", **config_args)
     node_name = node_name_rsrc["spec"]["nodename"]
     print(f"Selected talos node for the upgrade: {node_name}")
     print()
-
-    def_images = Command.check_output(["talosctl", "image", "default"]).splitlines()
-    new_k8s_images = [img.split(":")[0] + f":v{K8S_VERSION}" for img in def_images if "kube" in img]
-    machine_images = Command.check_output(["talosctl", "image", "list"])
-    imgs_missing = [img for img in new_k8s_images if img not in machine_images]
-
-    if preload and imgs_missing:
-        _preload_images(imgs_missing)
-        typer.confirm("Continue with upgrade next ?", abort=True)
 
     if not use_current_contexts:
         teleport.login(TELEPORT_PROXY_URL)
@@ -144,6 +144,4 @@ def upgrade_k8s(use_current_contexts: bool, preload: bool, dry_run: bool, verbos
     print()
 
     if should_upgrade:
-        talosctl.upgrade_k8s(
-            node_name, K8S_VERSION, pull_images=not (preload or not imgs_missing), dry_run=dry_run, verbose=verbose
-        )
+        talosctl.upgrade_k8s(node_name, K8S_VERSION, dry_run=dry_run, verbose=verbose)

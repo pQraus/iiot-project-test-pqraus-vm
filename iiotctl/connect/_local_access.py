@@ -7,11 +7,11 @@ from rich import print
 from .._utils import _check as check
 from .._utils import _common as common
 from .._utils import _kubectl as kubectl
+from .._utils import _talosctl as talosctl
 from .._utils import _teleport as teleport
-from .._utils._common import Command
-from .._utils._config import (BOX_NAME, DEP_KUBECTL, DEP_TALOSCTL, DEP_TCTL,
-                              DEP_TSH, TELEPORT_PROXY_URL)
-from .._utils._constants import K8S_CONFIG_USER, TALOS_CONFIG_PROJECT
+from .._utils._config import BOX_NAME, TELEPORT_PROXY_URL
+from .._utils._constants import (DEP_KUBECTL, DEP_TALOSCTL, DEP_TCTL, DEP_TSH,
+                                 K8S_CONFIG_USER, TALOS_CONFIG_PROJECT)
 
 ENCODING = sys.stdout.encoding
 
@@ -57,7 +57,7 @@ def configure_local_talos_access(machine_ip: str, ttl: str, talosconfig: str):
         config["contexts"][new_context] = context_values
 
     # set talos current-context
-    Command.check_output(cmd=["talosctl", "config", "context", new_context, "--talosconfig", talosconfig])
+    talosctl.config_context_set(new_context, talosconfig=talosconfig)
 
 
 @check.dependency(*DEP_KUBECTL)

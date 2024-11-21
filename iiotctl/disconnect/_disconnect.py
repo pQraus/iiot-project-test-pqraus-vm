@@ -3,8 +3,8 @@ from rich import print
 from .._utils import _check as check
 from .._utils import _common as common
 from .._utils._common import Command, TyperAbort
-from .._utils._config import BOX_NAME, DEP_TSH
-from .._utils._constants import K8S_CONFIG_USER, TALOS_CONFIG_USER
+from .._utils._config import BOX_NAME
+from .._utils._constants import DEP_TSH, K8S_CONFIG_USER, TALOS_CONFIG_USER
 
 
 @check.dependency(*DEP_TSH)

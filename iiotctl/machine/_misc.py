@@ -15,8 +15,8 @@ from .._utils._installer_spec_config import load_repo_extension_versions
 
 def print_live_talos_nodename(**config_arg):
     """fetches nodename from live talos machine; prints it to STDOUT"""
-    node_name_rsrc = talosctl.get_talos_resource("nodename", **config_arg)
-    node_name = node_name_rsrc["spec"]["nodename"]
+    node_name_rsc = talosctl.get(resource="nodename", **config_arg)
+    node_name = node_name_rsc["spec"]["nodename"]
     print()
     print(f"Selected talos node: '{node_name}'")
     print()

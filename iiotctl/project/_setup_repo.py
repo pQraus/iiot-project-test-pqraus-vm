@@ -7,8 +7,8 @@ from rich import print
 from .._utils import _check as check
 from .._utils import _common as common
 from .._utils._common import Command, TyperAbort
-from .._utils._config import DEP_GH, PROJECT_REPO, REPO_ON_GITHUB
-from .._utils._constants import REPO_ROOT
+from .._utils._config import PROJECT_REPO, REPO_ON_GITHUB
+from .._utils._constants import DEP_GH, REPO_ROOT
 
 
 def _create_git_credential_boot_manifest(credential_src_file: Path, template_file: Path, credential_dst_file: Path):

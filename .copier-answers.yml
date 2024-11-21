@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: v4.0.2-13-gf4699ba
+_commit: v4.0.2-56-g11cc2c7
 _src_path: https://github.com/SchulzSystemtechnik/iiot-base-box.git
 additional_system_apps:
 - local_monitoring
@@ -10,6 +10,7 @@ container_registries:
 environment: dev
 hardware_setup: []
 name: test-pqraus-vm
+openebs_quota: false
 preset_type: IIoT
 repo_github: true
 repo_github_name: pQraus/iiot-project-test-pqraus-vm

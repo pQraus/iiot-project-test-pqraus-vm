@@ -70,11 +70,11 @@ def resources(machine_ip: str | None, patch: bool, use_current_context: bool):
     )
     config_kwargs = _determine_talos_kwargs(machine_ip, use_current_context)
 
-    eth_links = talosctl.get_talos_resource("links", **config_kwargs)
+    eth_links = talosctl.get(resource="links", **config_kwargs)
     eth_datasets = _parse_ethernet_datasets(eth_links)
     _print_resource_overview("Ethernet Interfaces (talosctl get links)", ("HARDWARE_ADDRESS", "PRODUCT"), eth_datasets)
 
-    disk_datasets = talosctl.get_disks(**config_kwargs)
+    disk_datasets = talosctl.disks(**config_kwargs)
     _print_resource_overview("Disks (talosctl disks)", ("MODEL", "SIZE"), disk_datasets)
 
     if not patch:

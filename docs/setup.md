@@ -95,9 +95,14 @@ With the second step, the local project gets prepared to be bootstrapped onto th
     2. Generate all-encompassing deployment manifest for each system-app in its respective /argo directory
     3. Create project specific README.md file
     4. Setup the encryption key for sealed-secrets
-    5. Setup access tokens for image registries (only for production) & acquire teleport join token (valid for 3 hours) and add it into the box setup secrets
-    6. Setup token for remote-monitoring (if installed)
-    7. Do git stuff
+    5. Setup access tokens for image registries (only for production) + acquire teleport join token (valid for 3 hours) and add it into the box setup secrets (+ acquire and setup token for remote-monitoring, *if selected in copier dialog*)
+        > :warning: During **development box setup** is the user required to enter account names and corresponding tokens manually via a console input dialog:
+        > - for docker: Enter docker username + a valid personal access token (PAT)
+        > - for schulz-registry (harbor): Enter robot account name + corresponding token
+        > - *(if selected in copier dialog)* for remote grafana: Enter grafana cloud policy access token name + token data
+        >
+        > see [here](https://github.com/SchulzSystemtechnik/iiot-base-box/blob/main/docs-base/development.md) for instructions on how to create the required tokens
+    6. Do git stuff
        1. Set up local git repository
        2. make initial commit (-i)
        3. creating the repository on github
@@ -120,7 +125,7 @@ In this step the machine config is customized for the specific project.
     ```
     iiotctl machine resources --patch <ip-of-the-box>
     ```
-    This command will print you the names of the network interfaces. These names are important for the interface configuration in the next step.
+    > This command will print you the names of the network interfaces. These names are important for the interface configuration in the next step.
 2. Setup the network in the patch files:
     - interfaces: `machine/config/network/interfaces.jq` (only required when the machine shouldn't use DHCP)
     - DNS-Server: `machine/config/network/nameservers.jq`
@@ -173,7 +178,7 @@ Now with the fourth step, the config will be applied to the machine.
     ```bash
     iiotctl connect argo
     ```
-    Currently required because the ingress resource can't be applied when traefik isn't running (`IngressRoute` is defined by a traefik CRD).
+    > Currently required because the ingress resource can't be applied when traefik isn't running (`IngressRoute` is defined by a traefik CRD).
 
 **Finished !**
 
