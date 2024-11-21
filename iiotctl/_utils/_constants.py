@@ -14,3 +14,13 @@ DEFAULT_MACHINE_CONFIG_ID = "v1alpha1"
 
 TASK_CONFIG_PATH = Path(__file__).parent.parent / "tasks_config.json"
 ASDF_CONFIG_PATH = REPO_ROOT / ".tool-versions"
+
+DEP_GH = ["gh", "version"]
+DEP_GPG = ["gpg", "--version"]
+DEP_HELM = ["helm", "version"]
+DEP_JQ = ["jq", "--version"]
+DEP_KUBECTL = ["kubectl", "version -o yaml --client"]
+DEP_TALOSCTL = ["talosctl", "version --client"]
+DEP_TCTL = ["tctl", "version"]
+DEP_TSH = ["tsh", "version"]
+DEP_KUBESEAL = ["kubeseal", "--version"]

@@ -6,8 +6,7 @@ from rich import print
 from .._utils import _check as check
 from .._utils import _common as common
 from .._utils import _kubectl as kubectl
-from .._utils._config import DEP_HELM, DEP_KUBECTL
-from .._utils._constants import REPO_ROOT
+from .._utils._constants import DEP_HELM, DEP_KUBECTL, REPO_ROOT
 
 
 @check.dependency(*DEP_HELM)

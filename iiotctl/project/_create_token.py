@@ -12,9 +12,9 @@ from .._utils import _check as check
 from .._utils import _common as common
 from .._utils import _teleport
 from .._utils._common import Command, TyperAbort, print_error
-from .._utils._config import (BOX_NAME, CONTAINER_REGISTRIES, DEP_TCTL,
-                              DEP_TSH, TELEPORT_ENABLED, TELEPORT_PROXY_URL)
-from .._utils._constants import REPO_ROOT
+from .._utils._config import (BOX_NAME, CONTAINER_REGISTRIES, TELEPORT_ENABLED,
+                              TELEPORT_PROXY_URL)
+from .._utils._constants import DEP_TCTL, DEP_TSH, REPO_ROOT
 from ._seal_secret import _check_if_sealing_possible, _seal_secret
 
 TELEPORT_APP_NAME = "box-token-provider"

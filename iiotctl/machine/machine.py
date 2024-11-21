@@ -168,6 +168,29 @@ def sync(
 
 
 @app.command()
+def prepare_upgrade(
+    use_current_context: Annotated[
+        bool,
+        typer.Option(
+            "--use-current-context",
+            "-u",
+            help="use the current selected talos context, otherwise the machine/talosconfig-teleport file will be used"
+        )
+    ] = False
+):
+    """
+    pre-pull all images required for updating the live machine's talos & k8s versions to current project versions
+
+    Call with argument '--use-current-context' to connect via the currently selected talos context.
+    >>> iiotctl machine upgrade-talos --use-current-context
+
+        Useful if you want to connect via local talos cert and context, without teleport.
+    """
+
+    _upgrade.prepare_upgrade(use_current_context)
+
+
+@app.command()
 def upgrade_talos(
     no_preserve: Annotated[bool, typer.Option("--no-preserve", help="don't preserve data on disk")] = False,
     no_stage: Annotated[
@@ -199,9 +222,6 @@ def upgrade_talos(
 def upgrade_k8s(
     dry_run: Annotated[bool, typer.Option("--dry-run", "-d", help="execute the upgrade in dry-run mode")] = False,
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="verbose status messages")] = False,
-    preload: Annotated[
-        bool, typer.Option("--preload", help="preload k8s images onto live machine for later update")
-    ] = False,
     use_current_contexts: Annotated[
         bool,
         typer.Option(
@@ -223,7 +243,7 @@ def upgrade_k8s(
         Useful if you want to connect via local k8s + talos certs and contexts, without teleport.
     """
 
-    _upgrade.upgrade_k8s(use_current_contexts, preload, dry_run, verbose)
+    _upgrade.upgrade_k8s(use_current_contexts, dry_run, verbose)
 
 
 @app.command()

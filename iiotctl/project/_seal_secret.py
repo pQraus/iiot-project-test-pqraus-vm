@@ -1,7 +1,6 @@
 from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
-from shutil import copyfile
 from typing import Any
 from uuid import uuid4
 
@@ -16,14 +15,15 @@ from .._utils import _check as check
 from .._utils import _common as common
 from .._utils import _kubectl as kubectl
 from .._utils._common import Command, TyperAbort, print_error
-from .._utils._config import BOX_NAME, DEP_KUBECTL, DEP_KUBESEAL
-from .._utils._constants import K8S_CONFIG_USER, REPO_ROOT
+from .._utils._config import BOX_NAME
+from .._utils._constants import (DEP_KUBECTL, DEP_KUBESEAL, K8S_CONFIG_USER,
+                                 REPO_ROOT)
 
 APP_DIR = REPO_ROOT / "system-apps/sealed-secrets"
 NAMESPACE_FILE = APP_DIR / "argo-template/resources/sealed-secrets-namespace.yaml"
 MACHINE_PATCH_INITIAL_MANIFEST = APP_DIR / "machine-patches/_initial-manifests.boot.jq"
+MACHINE_PATCH_INITIAL_MANIFEST_TEMP = APP_DIR / "machine-patches/initial-manifests.boot.jq.temp"
 MACHINE_PATCH_SEALED_SECRET_KEY = APP_DIR / "machine-patches/sealed-secrets-key.yaml"
-MACHINE_PATCH_SEALED_SECRET_KEY_TEMP = APP_DIR / "machine-patches/sealed-secrets-key.yaml.temp"
 PRIVATE_KEY = APP_DIR / "sealing-secret/private-key.key"
 PUBLIC_KEY = APP_DIR / "sealing-secret/public-key.crt"
 
@@ -92,9 +92,6 @@ def _gen_key_and_cert():
 
 @contextmanager
 def _create_key() -> Generator[tuple[str, str], Any, Any]:
-    if not MACHINE_PATCH_SEALED_SECRET_KEY.exists():
-        copyfile(MACHINE_PATCH_SEALED_SECRET_KEY_TEMP, MACHINE_PATCH_SEALED_SECRET_KEY)
-
     PUBLIC_KEY.parent.mkdir(parents=True, exist_ok=True)
     public_key, private_key = _gen_key_and_cert()
 
@@ -110,10 +107,10 @@ def _create_key() -> Generator[tuple[str, str], Any, Any]:
 
 
 def _create_secret(bootstrap: bool = False) -> str:
-    if bootstrap:
-        name = "repo-key-bootstrap"
-    else:
-        name = _gen_secret_name()
+    name = "repo-key-bootstrap" if bootstrap else _gen_secret_name()
+
+    if not MACHINE_PATCH_SEALED_SECRET_KEY.exists():
+        raise TyperAbort(f"Missing sealed secrets config file: {MACHINE_PATCH_SEALED_SECRET_KEY}.")
 
     with _create_key() as (public_key, private_key):
         with common.patch_yaml_file(file_path=MACHINE_PATCH_SEALED_SECRET_KEY) as content:
@@ -159,7 +156,7 @@ def _bootstrap_key():
     with open(NAMESPACE_FILE) as file:
         namespace = file.read().replace("\"", "'")
 
-    with open(MACHINE_PATCH_INITIAL_MANIFEST) as file:
+    with open(MACHINE_PATCH_INITIAL_MANIFEST_TEMP) as file:
         initial_manifest = file.read()
 
     initial_manifest = initial_manifest.replace("<namespace>", namespace)

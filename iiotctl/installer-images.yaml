@@ -1,26 +1,22 @@
-version: v1
+version: v2
 metadata:
   name: SCHULZ Talos Installer Images
-  revision: 1
+  revision: 2
   talos_version: 1.7.5
   installer_image_repo: docker.io/schulzsystemtechnik/talos-installer
 extensions:
   - name: auth-proxy
-    image_repo: docker.io/schulzsystemtechnik/iiot-misc-talos-auth-proxy
-    image_tag: v1.7.0
     version: 1.7.0
   - name: bootstrap-service
-    image_repo: docker.io/schulzsystemtechnik/iiot-misc-talos-bootstrap
-    image_tag: v1.3.0
     version: 1.3.0
   - name: talosctl-provider
-    image_repo: docker.io/schulzsystemtechnik/iiot-misc-talosctl-provider
-    image_tag: v4.0.0
     version: 4.0.0
   - name: teleport-agent
-    image_repo: docker.io/schulzsystemtechnik/iiot-misc-talos-teleport-agent
-    image_tag: v1.3.0
     version: 1.3.0
+  - name: qemu-guest-agent
+    image_repo: ghcr.io/siderolabs/qemu-guest-agent
+    image_tag: 8.2.2
+    version: 8.2.2
   - name: nonfree-kmod-nvidia
     image_repo: ghcr.io/siderolabs/nonfree-kmod-nvidia
     image_tag: 535.129.03-v1.7.5
@@ -49,6 +45,21 @@ images:
   - id: 3
     name: slim
     extensions:
+      - auth-proxy
+      - bootstrap-service
+      - talosctl-provider
+  - id: 4
+    name: standard-qemu
+    extensions:
+      - qemu-guest-agent
+      - auth-proxy
+      - bootstrap-service
+      - talosctl-provider
+      - teleport-agent
+  - id: 5
+    name: slim-qemu
+    extensions:
+      - qemu-guest-agent
       - auth-proxy
       - bootstrap-service
       - talosctl-provider

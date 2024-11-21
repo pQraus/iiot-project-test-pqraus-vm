@@ -1,5 +1,7 @@
+version: v3
+
 teleport:
-  auth_servers: ["prod.teleport.schulzdevcloud.com:443"]
+  proxy_server: "prod.teleport.schulzdevcloud.com:443"
   data_dir: "/teleport-agent/data"
   auth_token: "/teleport-agent/config/join-token"
   diag_addr: "localhost:7755"
@@ -35,7 +37,7 @@ app_service:
         env: dev
         usage: iiot
         kind: talos
-        base-repo-version: v4.0.2-13-gf4699ba
+        base-repo-version: v4.0.2-56-g11cc2c7
         repo-url: https://github.com/pQraus/iiot-project-test-pqraus-vm
         local-monitoring: True
         remote-monitoring: False

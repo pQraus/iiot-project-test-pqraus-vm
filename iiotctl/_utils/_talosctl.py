@@ -22,6 +22,66 @@ from ._constants import JQ_MODULES_DIR, K8S_CONFIG_USER, REPO_ROOT
 ENCODING = sys.stdout.encoding
 
 
+def disks(**talos_args) -> Dict[str, Dict[str, str]]:
+    disks_table = Command.check_output(cmd=["talosctl", "disks", *parse_kwargs_to_cli_args(**talos_args)])
+    header_line = disks_table.splitlines()[0]
+    keys = header_line.split()[:11]  # only use the first 11 elements, skip READ_ONLY ...
+    disk_entries = disks_table.splitlines()[1:]
+    disks = {}
+    for i in disk_entries:
+        disk_values = re.split(r'\s{3,}', i)
+        disk = {key: value for key, value in zip(keys, disk_values) if value != "-"}
+        name = disk.pop("DEV")
+        disks.update({name: disk})
+    return disks
+
+
+def get(resource: str, id: str = None, **talos_args) -> Dict | List[Dict]:
+    """get a resource from the machine via talosctl as dict (list of dicts)"""
+    cmd = ["talosctl", "get", resource, "-o", "json", *parse_kwargs_to_cli_args(**talos_args)]
+    if id is not None:
+        cmd.append(id)
+    cmd_result = Command.check_output(cmd, additional_error_msg=f"Can't get the talos resource: {resource}.")
+
+    try:
+        return json.loads(cmd_result)
+    except json.JSONDecodeError:
+        decoder = json.JSONDecoder()
+        result = []
+        while cmd_result:
+            element, new_start = decoder.raw_decode(cmd_result)
+            cmd_result = cmd_result[new_start:].strip()
+            result.append(element)
+        return result
+
+
+def upgrade_talos(**talos_args):
+    """upgrade talos via talosctl"""
+    Command.check_output(cmd=["talosctl", "upgrade", *parse_kwargs_to_cli_args(**talos_args)])
+
+
+def config_merge(talosconfig_path: Path, **talos_args):
+    Command.check_output(
+        cmd=["talosctl", "config", "merge", talosconfig_path, *parse_kwargs_to_cli_args(**talos_args)]
+    )
+
+
+def config_endpoint(endpoint: str, **talos_args):
+    Command.check_output(cmd=["talosctl", "config", "endpoint", endpoint, *parse_kwargs_to_cli_args(**talos_args)])
+
+
+def config_context_set(new_context: str, **talos_args):
+    Command.check_output(cmd=["talosctl", "config", "context", new_context, *parse_kwargs_to_cli_args(**talos_args)])
+
+
+def image_default(**talos_args):
+    return Command.check_output(cmd=["talosctl", "image", "default", *parse_kwargs_to_cli_args(**talos_args)])
+
+
+def image_pull(image_ref: str, **talos_args):
+    Command.check_output(cmd=["talosctl", "image", "pull", image_ref, *parse_kwargs_to_cli_args(**talos_args)])
+
+
 def apply_mc(mc: bytes, exit_on_failure=True, print_errors=True, **talos_args):
     """apply the mc to a machine with talosctl
 
@@ -57,33 +117,14 @@ def apply_mc(mc: bytes, exit_on_failure=True, print_errors=True, **talos_args):
     return cmd_result
 
 
-def fetch_mc(id, **talos_args) -> bytes:
+def fetch_mc(id: str, **talos_args) -> bytes:
     """fetch the mc by id from a machine with talosctl
 
     **talos_args: are passed to the talosctl command
     """
 
-    base_cmd = ["talosctl", "get", "mc", id, "-o", "json"]
-    additional_args = parse_kwargs_to_cli_args(**talos_args)
-    mc_with_meta = Command.check_output(cmd=base_cmd + additional_args, in_bytes=True)
-    fetched_mc = json.loads(mc_with_meta)["spec"]
-    return bytes(json.dumps(fetched_mc, indent=2), ENCODING)
-
-
-def get_disks(**talos_args) -> Dict[str, Dict[str, str]]:
-    base_cmd = ["talosctl", "disks"]
-    additional_args = parse_kwargs_to_cli_args(**talos_args)
-    disks_table = Command.check_output(cmd=base_cmd + additional_args)
-    header_line = disks_table.splitlines()[0]
-    keys = header_line.split()[:11]  # only use the first 11 elements, skip READ_ONLY ...
-    disk_entries = disks_table.splitlines()[1:]
-    disks = {}
-    for i in disk_entries:
-        disk_values = re.split(r'\s{3,}', i)
-        disk = {key: value for key, value in zip(keys, disk_values) if value != "-"}
-        name = disk.pop("DEV")
-        disks.update({name: disk})
-    return disks
+    mc_with_meta = get(resource="mc", id=id, **talos_args)
+    return bytes(json.dumps(mc_with_meta["spec"], indent=2), ENCODING)
 
 
 def get_live_talos_version(**talos_args) -> str:
@@ -105,27 +146,9 @@ def get_live_talos_version(**talos_args) -> str:
     return live_version
 
 
-def get_talos_resource(resource_name, **talos_args) -> Dict | List[Dict]:
-    """get a resource from the machine via talosctl in json"""
-    additional_args = parse_kwargs_to_cli_args(**talos_args)
-    cmd = ["talosctl", "get", resource_name, "-o", "json"] + additional_args
-    cmd_result = Command.check_output(cmd, additional_error_msg=f"Can't get the talos resource: {resource_name}.")
-
-    try:
-        return json.loads(cmd_result)
-    except json.JSONDecodeError:
-        decoder = json.JSONDecoder()
-        result = []
-        while cmd_result:
-            element, new_start = decoder.raw_decode(cmd_result)
-            cmd_result = cmd_result[new_start:].strip()
-            result.append(element)
-        return result
-
-
 def get_live_talos_extension_versions(**talos_args):
     """returns all live talos extensions with their respective versions"""
-    extension_dicts: List[Dict] = get_talos_resource(resource_name="extensions", **talos_args)
+    extension_dicts: List[Dict] = get(resource="extensions", **talos_args)
 
     live_exts = {}
     for ext_d in extension_dicts:
@@ -185,12 +208,12 @@ def generate_mc(cluster_name: str, ttl_years: int, **talos_args):
         talos_key = controlplane_mc["machine"]["ca"]["key"]
 
         controlplane_mc = bytes(json.dumps(controlplane_mc, indent=2), ENCODING)
-        talosconfig = _generate_taloconfig(cluster_name, talos_ca, talos_key)
+        talosconfig = _generate_talosconfig(cluster_name, talos_ca, talos_key)
 
     return controlplane_mc, talosconfig
 
 
-def validate_mc(mc: bytes):
+def validate_mc(mc: bytes, mode="metal"):
     """validate the *mc* with talosctl
 
     exit 1 when there is a validation error
@@ -203,8 +226,8 @@ def validate_mc(mc: bytes):
             fmc.write(mc)
 
         Command.check_output(
-            cmd=["talosctl", "validate", "--mode=metal", "-c", mc_file],
-            additional_error_msg="Machine config is not valid.",
+            cmd=["talosctl", "validate", f"--mode={mode}", "-c", mc_file],
+            additional_error_msg="Machine config is not valid."
         )
 
 
@@ -220,7 +243,7 @@ def patch_mc(mc: bytes, patch_files: Iterable[Path], validation=True, verbose=Fa
     return mc.rstrip()
 
 
-def upgrade_k8s(node_name: str, to_version: str, pull_images: bool, verbose: bool, **talos_args):
+def upgrade_k8s(node_name: str, to_version: str, verbose: bool, **talos_args):
     """upgrade k8s via talosctl and port forwarding the kube-api
 
     How a k8s upgrade on a talos machine works:
@@ -235,7 +258,6 @@ def upgrade_k8s(node_name: str, to_version: str, pull_images: bool, verbose: boo
         "upgrade-k8s",
         "--to",
         to_version,
-        f"--pre-pull-images={str(pull_images).lower()}",
         "--endpoint",
         "localhost",
     ]
@@ -276,13 +298,6 @@ def upgrade_k8s(node_name: str, to_version: str, pull_images: bool, verbose: boo
 
     if upgrade_process.returncode:
         raise TyperAbort()
-
-
-def upgrade_talos(**talos_args):
-    """upgrade talos via talosctl"""
-    base_cmd = ["talosctl", "upgrade"]
-    additional_args = parse_kwargs_to_cli_args(**talos_args)
-    Command.check_output(base_cmd + additional_args)
 
 
 def _generate_custom_ca(root_name: str, years_valid: int):
@@ -381,7 +396,7 @@ def _patch_mc_with_custom_ca(mc_dict: dict, years_valid: int, issuer: str):
     mc_dict["machine"]["ca"]["key"] = b64_talos_key_str
 
 
-def _generate_taloconfig(context_name: str, ca_b64: str, ca_key_b64: str):
+def _generate_talosconfig(context_name: str, ca_b64: str, ca_key_b64: str):
     client_cert_hours_valid = 10 * 365 * 24
     with tempfile.TemporaryDirectory() as td:
         # copy ca, key, in dir
@@ -431,16 +446,6 @@ def _generate_taloconfig(context_name: str, ca_b64: str, ca_key_b64: str):
             ],
             cwd=tmp_dir,
         )
-        sp.check_output(
-            [
-                "talosctl",
-                "--talosconfig",
-                talosconfig_file,
-                "config",
-                "context",
-                context_name,
-            ],
-            cwd=tmp_dir,
-        )
+        config_context_set(context_name, talosconfig=talosconfig_file)
         with open(talosconfig_file, "rb") as file:
             return file.read()

@@ -27,13 +27,3 @@ ADDITIONAL_SYSTEM_APPS: List[str] = get_config_entry(TASK_CONFIG, "additional_sy
 
 # read from asdf .tool-versions file
 ASDF_PLUGINS: Dict[str, Dict[str, str]] = load_asdf_plugins(ASDF_CONFIG_PATH)
-
-DEP_GH = ["gh", "version"]
-DEP_GPG = ["gpg", "--version"]
-DEP_HELM = ["helm", "version"]
-DEP_JQ = ["jq", "--version"]
-DEP_KUBECTL = ["kubectl", "version -o yaml --client"]
-DEP_TALOSCTL = ["talosctl", "version --client"]
-DEP_TCTL = ["tctl", "version"]
-DEP_TSH = ["tsh", "version"]
-DEP_KUBESEAL = ["kubeseal", "--version"]

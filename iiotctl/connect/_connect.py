@@ -1,15 +1,16 @@
 from pathlib import Path
+from typing import Dict
 
 from rich import print
 
 from .._utils import _check as check
 from .._utils import _common as common
 from .._utils import _kubectl as kubectl
+from .._utils import _talosctl as talosctl
 from .._utils import _teleport as teleport
-from .._utils._common import Command
-from .._utils._config import (BOX_NAME, DEP_KUBECTL, DEP_TALOSCTL, DEP_TSH,
-                              TELEPORT_PROXY_URL)
-from .._utils._constants import TALOS_CONFIG_PROJECT
+from .._utils._config import BOX_NAME, TELEPORT_PROXY_URL
+from .._utils._constants import (DEP_KUBECTL, DEP_TALOSCTL, DEP_TSH,
+                                 TALOS_CONFIG_PROJECT)
 from ._local_access import (configure_local_k8s_access,
                             configure_local_talos_access)
 
@@ -41,12 +42,12 @@ def connect_talos(local_port: int, machine_ip: str | None, ttl: str, talosconfig
 
     # 1. delete the context to ensure that the right config (from the repo) is used
     with common.patch_yaml_file(file_path=talosconfig) as config:
-        contexts = config.get("contexts")
+        contexts: Dict = config.get("contexts")
         if contexts is not None:
             contexts.pop(BOX_NAME, None)
     # 2. add the context from the repo into the config
-    Command.check_output(cmd=["talosctl", "config", "merge", TALOS_CONFIG_PROJECT])
-    Command.check_output(cmd=["talosctl", "config", "endpoint", f"127.0.0.1:{local_port}"])
+    talosctl.config_merge(talosconfig_path=TALOS_CONFIG_PROJECT, talosconfig=talosconfig)
+    talosctl.config_endpoint(endpoint=f"127.0.0.1:{local_port}", talosconfig=talosconfig)
     print(f"Set global talos context to: {BOX_NAME}")
     print()
 

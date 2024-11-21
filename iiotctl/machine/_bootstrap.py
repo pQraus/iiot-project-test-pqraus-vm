@@ -9,9 +9,9 @@ from .._utils import _check as check
 from .._utils import _common as common
 from .._utils import _talosctl as talosctl
 from .._utils._common import TyperAbort, print_if
-from .._utils._config import (BOX_NAME, DEP_GPG, DEP_JQ, DEP_TALOSCTL,
-                              TALOS_INSTALLED_EXTENSIONS)
-from .._utils._constants import (PATCH_LOCATIONS, REPO_ROOT,
+from .._utils._config import BOX_NAME, TALOS_INSTALLED_EXTENSIONS
+from .._utils._constants import (DEP_GPG, DEP_JQ, DEP_TALOSCTL,
+                                 PATCH_LOCATIONS, REPO_ROOT,
                                  TALOS_CONFIG_PROJECT)
 from .._utils._installer_spec_config import load_repo_installer_image_ref
 from . import _talos_config as talos_config

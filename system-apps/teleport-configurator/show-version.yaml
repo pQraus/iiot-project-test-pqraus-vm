@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: show-teleport-version
+  namespace: teleport-configurator
+spec:
+  restartPolicy: Never
+  containers:
+  - image: schulzsystemtechnik/iiot-misc-teleport-configurator:review
+    name: utils
+    command:
+      - /teleport-agent-live/bin/teleport
+      - version
+      - --raw
+    resources:
+      limits:
+        cpu: 50m
+        memory: 50Mi
+      requests:
+        cpu: 10m
+        memory: 10Mi
+    volumeMounts:
+      - name: live-data
+        mountPath: /teleport-agent-live
+        readOnly: true
+  volumes:
+    - name: live-data
+      hostPath:
+        path: /var/extension-data/teleport-agent
