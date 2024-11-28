@@ -6,7 +6,7 @@ from typing_extensions import Annotated
 
 from .._utils import _teleport as teleport
 from .._utils._config import (ADDITIONAL_SYSTEM_APPS, CONTAINER_REGISTRIES,
-                              IS_DEV_ENV, TELEPORT_ENABLED, TELEPORT_PROXY_URL)
+                              IS_TESTING_ENV, TELEPORT_ENABLED, TELEPORT_PROXY_URL)
 from .._utils._constants import REPO_README
 from . import (_create_token, _render_manifests, _seal_secret, _setup_repo,
                _setup_tools, _upgrade_base)
@@ -64,7 +64,7 @@ def setup(
             teleport=TELEPORT_ENABLED,
             grafana="remote_monitoring" in ADDITIONAL_SYSTEM_APPS,
             ttl="3h",
-            dev=IS_DEV_ENV
+            dev=IS_TESTING_ENV
         )
     if not no_github_repo:
         typer.secho("\nSetup github repo:\n", bold=True)
