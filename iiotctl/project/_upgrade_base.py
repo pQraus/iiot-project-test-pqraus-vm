@@ -8,7 +8,8 @@ from .._utils._common import Command, TyperAbort
 from .._utils._config import (ADDITIONAL_SYSTEM_APPS, BASE_REPO_VERSION,
                               BOX_NAME, K8S_VERSION, TALOS_VERSION,
                               TELEPORT_ENABLED, TRAEFIK_ENDPOINTS)
-from .._utils._constants import MACHINE_DIR, REPO_README
+from .._utils._constants import (MACHINE_DIR, PUBLIC_SEALED_SECRETS_KEY,
+                                 REPO_README)
 from ._render_manifests import render_argo_manifests
 from ._setup_tools import setup_tools
 
@@ -167,11 +168,19 @@ def upgrade(set_up_tooling: bool, render_manifests: bool, render_readme: bool, c
             Command.check_output(["git", "add", "."])
             Command.check_output(["git", "commit", "-m", "feat: update argo manifests"])
 
+    print("\n")
     # special v3 -> v4 migration
     disk_selector_file = MACHINE_DIR / "config" / "disk" / "disk-selector.jq"
     if not disk_selector_file.exists():
         typer.secho(
-            "\n\nNow execute 'iiotctl machine resources --patch' to ensure you have the right disk selected.",
+            "Now execute 'iiotctl machine resources --patch' to ensure you have the right disk selected.",
+            fg="yellow"
+        )
+
+    if not PUBLIC_SEALED_SECRETS_KEY.exists():
+        typer.secho(
+            "Now execute 'iiotctl project seal-secret --init' while connected to the machine,"
+            " to ensure k8s secrets of the repository can be sealed by it.",
             fg="yellow"
         )
 

@@ -18,8 +18,8 @@ kubernetes_service:
   enabled: true
   kubeconfig_file: "/secrets/kubernetes/admin/config"
   labels:
-    env: dev
     usage: iiot
+    env: testing
     
 app_service:
   enabled: true
@@ -34,11 +34,11 @@ app_service:
           command: ["/bin/busybox", "cat", "/teleport-agent/sync-status"]
           period: 0h10m0s
       labels:
-        env: dev
         usage: iiot
+        env: testing
         kind: talos
         configurator-tag: review
-        base-repo-version: v4.0.2-73-g867d2a4
+        base-repo-version: v4.0.2-85-ga15aa4a
         repo-url: https://github.com/pQraus/iiot-project-test-pqraus-vm
         local-monitoring: True
         remote-monitoring: False
@@ -46,8 +46,8 @@ app_service:
     - name: private-test-pqraus-vm
       uri: http://10.96.0.100:80
       labels:
-        env: dev
         usage: iiot
+        env: testing
         kind: ingress-private
 
 db_service:

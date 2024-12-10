@@ -17,7 +17,7 @@ from .._utils import _kubectl as kubectl
 from .._utils._common import Command, TyperAbort, print_error
 from .._utils._config import BOX_NAME
 from .._utils._constants import (DEP_KUBECTL, DEP_KUBESEAL, K8S_CONFIG_USER,
-                                 REPO_ROOT)
+                                 PUBLIC_SEALED_SECRETS_KEY, REPO_ROOT)
 
 APP_DIR = REPO_ROOT / "system-apps/sealed-secrets"
 NAMESPACE_FILE = APP_DIR / "argo-template/resources/sealed-secrets-namespace.yaml"
@@ -25,7 +25,6 @@ MACHINE_PATCH_INITIAL_MANIFEST = APP_DIR / "machine-patches/_initial-manifests.b
 MACHINE_PATCH_INITIAL_MANIFEST_TEMP = APP_DIR / "machine-patches/initial-manifests.boot.jq.temp"
 MACHINE_PATCH_SEALED_SECRET_KEY = APP_DIR / "machine-patches/sealed-secrets-key.yaml"
 PRIVATE_KEY = APP_DIR / "sealing-secret/private-key.key"
-PUBLIC_KEY = APP_DIR / "sealing-secret/public-key.crt"
 
 
 def _check_if_cert_expired(cert_file) -> bool:
@@ -39,11 +38,11 @@ def _check_if_cert_expired(cert_file) -> bool:
 
 
 def _check_if_sealing_possible() -> bool:
-    if not PUBLIC_KEY.exists():
+    if not PUBLIC_SEALED_SECRETS_KEY.exists():
         print_error("Sealed-secrets encryption key not set. Use 'iiotctl project seal-secret --init' to initialize")
         return False
 
-    if _check_if_cert_expired(PUBLIC_KEY):
+    if _check_if_cert_expired(PUBLIC_SEALED_SECRETS_KEY):
         print_error(
             "Sealed-secrets encryption key expired. Use 'iiotctl project seal-secret --init' to create a new one"
         )
@@ -92,10 +91,10 @@ def _gen_key_and_cert():
 
 @contextmanager
 def _create_key() -> Generator[tuple[str, str], Any, Any]:
-    PUBLIC_KEY.parent.mkdir(parents=True, exist_ok=True)
+    PUBLIC_SEALED_SECRETS_KEY.parent.mkdir(parents=True, exist_ok=True)
     public_key, private_key = _gen_key_and_cert()
 
-    with open(PUBLIC_KEY, "w") as file:
+    with open(PUBLIC_SEALED_SECRETS_KEY, "w") as file:
         file.write(public_key)
 
     with open(PRIVATE_KEY, "w") as file:
@@ -173,7 +172,7 @@ def _seal_secret(secret_file: str, sealed_secret_file: str):
         cmd=[
             "kubeseal",
             "--cert",
-            PUBLIC_KEY,
+            PUBLIC_SEALED_SECRETS_KEY,
             "--controller-namespace",
             "sealed-secrets",
             "-f",
