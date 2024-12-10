@@ -97,13 +97,13 @@ Updating the files (machine config patches, k8s-manifests) within the project re
     ```bash
     git push origin update/base-$(yq '._commit' .copier-answers.yml)
     ```
-7. Connect to argo and check the apps
+7. Merge the update branch into main on Github (Only if upgrade within major talos version)
+    - **The new system apps will be upgraded immediately by ArgoCD!**
+8. Connect to argo and check the apps (Only if upgrade within major talos version)
     ```bash
-    iioctl connect argo
+    iiotctl connect argo
     ```
-8. When everything is fine (in argo + the machine status) merge the update branch into main on Github
-- **The new system apps will be upgraded immediately by ArgoCD!**
-- Delete the branch locally and remote after merge.
+    - Delete the branch locally and remote after merge.
 
 
 ## 2. Apply the upgrade to the box with `iiotctl machine sync`
@@ -120,6 +120,11 @@ The following steps will depend on what the previous step has changed.
 
 **Steps**
 
+0. (Optional) Pre-pull images required in talos / kubernetes upgrade (ensures faster upgrade process)
+    ```bash
+    iiotctl machine prepare-upgrade
+    ```
+    > Relevant for production box upgrades where time is of the essence
 1. Differences in the machine configuration: synchronize the configuration (in the proper apply mode)
     ```bash
     iiotctl machine status
@@ -202,11 +207,16 @@ Supported upgrade path: **v3.x.x --> v4.0.2**
     iiotctl machine resources --patch
     ```
     Select the disk talos should use.
-6. Apply the machine config in staged mode and ignore the version change
+6. (Optional) Pre-pull images required in talos / kubernetes upgrade (ensures faster upgrade process)
+    ```bash
+    iiotctl machine prepare-upgrade
+    ```
+    > Relevant for production box upgrades where time is of the essence
+7. Apply the machine config in staged mode and ignore the version change
     ```bash
     iiotctl machine sync --force --apply-mode staged
     ```
-7. Execute the **Talos upgrade** (Causes Downtime :rotating_light:)
+8. Execute the **Talos upgrade** (Causes Downtime :rotating_light:)
     ```bash
     iiotctl machine upgrade-talos
     ```
@@ -215,7 +225,7 @@ Supported upgrade path: **v3.x.x --> v4.0.2**
     ```
     - after upgrading the dashboard should show that the `STAGE` is `Running` and `READY` is `True` (it takes ~10 min)
     - when machine doesn't change in ready state -> Call the Experts :phone:  
-8. Execute the **Kubernetes upgrade** (Causes Downtime :rotating_light:)
+9. Execute the **Kubernetes upgrade** (Causes Downtime :rotating_light:)
     ```bash
     iiotctl machine upgrade-k8s
     ```
@@ -224,15 +234,15 @@ Supported upgrade path: **v3.x.x --> v4.0.2**
     ```
     - after upgrading the dashboard should show that the `STAGE` is `Running` and `READY` is `True` (it takes ~10 min)
     - when machine doesn't change in ready state -> Call the Experts :phone: 
-9. Seal the machine config (the k8s upgrade makes some changes) 
+10. Seal the machine config (the k8s upgrade makes some changes) 
     ```bash
     iiotctl machine seal-config
     ```
-10. Sync the machine config (the k8s upgrade changes some of our values)
+11. Sync the machine config (the k8s upgrade changes some of our values)
     ```bash
     iiotctl machine sync
     ```
-11. check machine status
+12. check machine status
     ```bash
     iiotctl machine status
     ```
@@ -240,17 +250,17 @@ Supported upgrade path: **v3.x.x --> v4.0.2**
       * continue
     * when anything is :x: :
       * -> Call the Experts :phone:.
-12. commit changes (sealed machine config changed, disk selector patch created)
+13. commit changes (sealed machine config changed, disk selector patch created)
     ```bash
     git add machine/ && \
     git commit -m "feat: seal machine config, add disk selector"
     ```
-13. Push the update branch
+14. Push the update branch
     ```bash
     git push origin update/base-$(yq '._commit' .copier-answers.yml)
     ```
-14. merge the update branch into main (ensure that the main branch is uploaded)
-15. refresh all argo applications (in the argocd ui)
+15. merge the update branch into main (ensure that the main branch is uploaded)
+16. refresh all argo applications (in the argocd ui)
     ```bash
     iiotctl connect argo
     ```
@@ -264,8 +274,8 @@ Supported upgrade path: **v3.x.x --> v4.0.2**
         ```bash
         kubectl delete pod -n monitoring -l app=grafana
         ```
-16. upgrade finished
-17. **recommendation:** update / rotate the ca certificates to increase the expiration date to 100 years: [talos-sandbox repo](https://github.com/SchulzSystemtechnik/iiot-misc-talos-sandbox/tree/main/cert_management)
+17. upgrade finished
+18. **recommendation:** update / rotate the ca certificates to increase the expiration date to 100 years: [talos-sandbox repo](https://github.com/SchulzSystemtechnik/iiot-misc-talos-sandbox/tree/main/cert_management)
 
 
 ## Upgrade v2 to v3

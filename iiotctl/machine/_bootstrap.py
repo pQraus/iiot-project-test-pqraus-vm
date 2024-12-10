@@ -82,7 +82,7 @@ def bootstrap(
     # if dry_run skip applying and talosconfig-teleport updating
     if dry_run:
         print("Bootstrapping in dry-run mode finished successfully")
-        print("When the created config is used, you should seal the mc with 'iiotctl machine seal-mc'")
+        print("When the created config is used, you should seal the mc with 'iiotctl machine seal-config'")
         return
 
     common.print_if("", verbose)

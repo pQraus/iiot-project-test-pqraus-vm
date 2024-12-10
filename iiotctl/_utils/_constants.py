@@ -8,6 +8,8 @@ TALOS_CONFIG_PROJECT = MACHINE_DIR / "talosconfig-teleport"
 TALOS_CONFIG_USER = Path.home() / ".talos" / "config"
 K8S_CONFIG_USER = Path.home() / ".kube" / "config"
 TASKS_TMP_DIR = REPO_ROOT / ".tasks"
+PUBLIC_SEALED_SECRETS_KEY = REPO_ROOT / "system-apps/sealed-secrets" / "sealing-secret/public-key.crt"
+
 PATCH_LOCATIONS = ["machine/config/*/_*.jq", "system-apps/*/machine-patches/_*.jq"]
 EXCLUDE_SYNC_PATCHES = ["**/_*.boot.jq"]
 DEFAULT_MACHINE_CONFIG_ID = "v1alpha1"

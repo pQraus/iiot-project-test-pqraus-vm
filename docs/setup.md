@@ -166,7 +166,7 @@ Now with the fourth step, the config will be applied to the machine.
 
 3. Wait until the new box is ready and connected to teleport.
   
-    **Optional VM ESX-server:** When the machine is ready you must upgrade the machine because the ova-image is already a complete talos installation and the extensions aren't installed automatically:
+    **Optional VM ESX-server:** When the machine is ready (dashboard: `READY: TRUE`) you must upgrade the machine because the ova-image is already a complete talos installation and the extensions aren't installed automatically:
     ```bash
     talosctl config merge .tasks/talosconfig
     ```
@@ -190,6 +190,7 @@ Now with the fourth step, the config will be applied to the machine.
     - [interaction with k8s](/docs/interaction-k8s.md)
 
 - Now you can add a user-app in the `user-apps` dir ([add an user app](/user-apps/README.md))
+    - For PStar machines: [local-system-ui](https://github.com/SchulzSystemtechnik/iiot-app-local-system-ui)
 - For a production machine you should look at the checklist: https://github.com/SchulzSystemtechnik/iiot-base-box/blob/main/docs-base/checklist.md
 
 
